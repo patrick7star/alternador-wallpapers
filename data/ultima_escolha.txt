@@ -1,0 +1,5 @@
+/home/savio/Pictures/aves
+aves.xml
+l.xml
+1.xml
+lpapers_de_estradas.xml
