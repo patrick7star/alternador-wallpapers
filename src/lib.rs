@@ -88,7 +88,12 @@ fn parte_i() -> Vec<PathBuf> {
          for subdir in novas_dir {
             let entrada = subdir.unwrap().path();
             let caminho_i = entrada.as_path();
-            if caminho_i.extension().unwrap() == OsStr::new("xml"){ 
+            let extensao = match caminho_i.extension() {
+               Some(string) => string,
+               None => OsStr::new("nada"),
+            };
+            //if caminho_i.extension().unwrap() == OsStr::new("xml"){ 
+            if extensao == OsStr::new("xml") {
                arquivos_xml.push(caminho_i.to_path_buf());
                break;
             }
