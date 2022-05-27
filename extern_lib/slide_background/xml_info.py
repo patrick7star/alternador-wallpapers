@@ -30,6 +30,16 @@ def info_importante(instancia):
 # computa o total de segundos que toda a apresentação durará.
 def tempo_de_apresentacao(arquivo_xml):
    instancia = ConfiguracaoXML.instanciar(arquivo_xml)
+
+   # leitura sintática falha em pegar número
+   # de imagens lendo o XML.
+   if instancia.qtd == 0:
+      # lista com imagens do diretório.
+      entradas = os.listdir(instancia.caminho)
+      # descontabilizando o arquivo XML.
+      instancia.qtd = len(entradas) - 1
+   ...
+
    return instancia.tempo * instancia.qtd
 ...
 
@@ -73,4 +83,8 @@ if __name__ == "__main__":
       else:
          print("nada encontrado!")
    ...
+
+   arquivo_xml = "/usr/share/backgrounds/cosmos/background-1.xml"
+   tempo_legivel = tempo_de_apresentacao(arquivo_xml) // 60
+   print("\ntempo apresentação:{0:<3}min".format(tempo_legivel))
 ...
