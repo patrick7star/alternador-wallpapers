@@ -379,10 +379,20 @@ pub fn duracao_atual_transicao() -> Duration {
    let mut decimal = String::new();
    for byte in resultado.stdout.iter() 
       { decimal.push(*byte as char); }
+   
    // convertendo para um decimal ponto-flutuante ...
-   let segundos = f32::from_str(decimal.as_str()).unwrap();
-   // criando 'Duration' com valor recuperado ...
-   Duration::from_secs_f32(segundos)
+   match f32::from_str(decimal.as_str()) {
+      // criando 'Duration' com valor recuperado ...
+      Ok(segundos) => Duration::from_secs_f32(segundos),
+      /* em caso de erro, sorteio um perído
+       * entre uma hora à quatro horas. */
+      Err(_) => {
+         let limite_inferior: u64 = 3600;
+         let limite_superior: u64 = 4 * 3600;
+         let tempo = fastrand::u64(limite_inferior..limite_superior);
+         Duration::from_secs(tempo) 
+      }
+   }
 }
 
 // testes realizados.
