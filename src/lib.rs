@@ -23,11 +23,10 @@ use xshell::{Cmd, cmd};
 pub use date_time::date_tuple::DateTuple;
 
 // bibliotecas do próprio caixote.
-mod banco_de_dados;
+pub mod banco_de_dados;
 use banco_de_dados::{le_escolha, grava_escolha};
 mod atualizacoes;
 pub use atualizacoes::atualiza_xmls;
-//mod transicao;
 
 /* caminho do diretório que será trabalhado.
  * diretório onde será varrido por 

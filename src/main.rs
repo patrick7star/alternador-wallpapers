@@ -13,7 +13,8 @@ em toda inicialização do computador, ou novo login.
 use personalizacao::{
    duracao_atual_transicao,
    atualiza_xmls, 
-   alterna_transicao
+   alterna_transicao,
+   banco_de_dados
 };
 extern crate utilitarios;
 use utilitarios::legivel;
@@ -33,6 +34,52 @@ use std::thread::sleep;
 const MINIMO:u16 = 1_600;
 const MAXIMO:u16 = 3_600;
  
+fn atual_transicao() -> String {
+   match banco_de_dados::le_escolha() {
+      Ok(caminho_contido) => {
+         let string = {
+            caminho_contido
+            .as_path()
+            .file_name()
+            .unwrap()
+            .to_os_string()
+            .into_string()
+            .unwrap_or("ALGO FOI ERRADO".to_string())
+         };
+         /* retirando o traço por espaço
+          * e colocando tudo maiúscula. */
+         string
+         .replace("_", " ")
+         .to_uppercase()
+      } Err(_) => 
+         { panic!("erro ao extraír caminho!"); }
+   }
+}
+
+/* faz uma notificação da atual transição
+ * aplicada ao sistema. */
+fn popup_notificacao() {
+   /* obtêm o nome da atual transição, e trabalha
+    * um pouquinho nela. */
+   let nome_transicao = atual_transicao();
+   // notificação sobre transição.
+   let mensagem = format!(
+      "a nova transição de imagem \"{}\" foi colocada",
+      nome_transicao
+   );
+   let argumentos:[&str; 4] = [
+      "--expire-time=25000",
+      "--icon=object-rotate-left",
+      "--app-name=AlternaWallpaper",
+      mensagem.as_str()
+   ];
+   let envia_notificacao:Cmd = {
+      Cmd::new("notify-send")
+      .args(argumentos.into_iter())
+      .echo_cmd(false)
+   };
+   envia_notificacao.run().unwrap();
+}
 
 fn main() {
   // marcando tempo inicial de contagem ...
@@ -62,23 +109,18 @@ fn main() {
          /* pegando duração do tempo total de apresentação
           * da nova transição de slides, somado à 1min para 
           * acabar toda apresentação. */
-         tempo_final = duracao_atual_transicao() + Duration::from_secs(60);
-         // notificação sobre transição.
-         let argumentos:[&str; 4] = [
-            "--expire-time=25000",
-            "--icon=object-rotate-left",
-            "--app-name=AlternaWallpaper",
-            "uma nova transição de imagens foi colocada"
-         ];
-         let envia_notificacao:Cmd = {
-            Cmd::new("notify-send")
-            .args(argumentos.into_iter())
-            .echo_cmd(false)
+         tempo_final = {
+            duracao_atual_transicao() 
+                     + 
+            Duration::from_secs(60)
          };
-         envia_notificacao.run().unwrap();
+         // mostra a notificação da atual ação.
+         popup_notificacao();
       } else if !execucao_inicial {
          // faz uma execução inicial
          alterna_transicao();
+         // mostra a notificação da atual ação.
+         popup_notificacao();
          // executada uma vez ...
          execucao_inicial = true;
       } else {
