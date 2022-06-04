@@ -68,6 +68,8 @@ fn parte_i() -> Vec<PathBuf> {
    arquivos_xml.push(Path::new(caminho).to_path_buf());
    let caminho = "/usr/share/backgrounds/contest/focal.xml";
    arquivos_xml.push(Path::new(caminho).to_path_buf());
+   let caminho = "/usr/share/backgrounds/ubuntu-mate-photos/ubuntu_mate_photos.xml";
+   arquivos_xml.push(Path::new(caminho).to_path_buf());
 
    // varrendo tal raíz.
    for dir in sua_localizacao {
