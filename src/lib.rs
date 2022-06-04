@@ -64,12 +64,19 @@ fn parte_i() -> Vec<PathBuf> {
    // lista com todos arquivos XML encontrados.
    let mut arquivos_xml:Vec<PathBuf> = Vec::new();
    // adicionando XML's do sistema.
-   let caminho = "/usr/share/backgrounds/cosmos/background-1.xml";
-   arquivos_xml.push(Path::new(caminho).to_path_buf());
-   let caminho = "/usr/share/backgrounds/contest/focal.xml";
-   arquivos_xml.push(Path::new(caminho).to_path_buf());
-   let caminho = "/usr/share/backgrounds/ubuntu-mate-photos/ubuntu_mate_photos.xml";
-   arquivos_xml.push(Path::new(caminho).to_path_buf());
+   let caminhos:[&str; 3] = [
+      "/usr/share/backgrounds/cosmos/background-1.xml",
+      "/usr/share/backgrounds/contest/focal.xml",
+      "/usr/share/backgrounds/ubuntu-mate-photos/ubuntu_mate_photos.xml"
+   ];
+   /* para adicionar caminho específico, 
+    * adiciona na array. */
+   for pth_str in caminhos.into_iter() {
+      let caminho = Path::new(pth_str).to_path_buf();
+      // só adiciona se existir.
+      if caminho.exists() 
+         { arquivos_xml.push(caminho); }
+   }
 
    // varrendo tal raíz.
    for dir in sua_localizacao {
