@@ -33,7 +33,27 @@ use std::thread::sleep;
  * de-imagens é entre 5h e 8h. */
 const MINIMO:u16 = 1_600;
 const MAXIMO:u16 = 3_600;
+
+// extensão para o objeto String.
+trait Extensao {
+   fn titulo(&self) -> String;
+}
  
+impl Extensao for String {
+   /* faz uma string com um título, ou seja,
+    * faz cada palavra "capitalizada". */
+   fn titulo(&self) -> String {
+      let mut nova_str = String::new();
+      for s in self.split(' ') {
+         let primeiro_char = s.get(0..1).unwrap();
+         nova_str += primeiro_char.to_uppercase().as_str();
+         nova_str += s.get(1..).unwrap();
+         nova_str.push(' ');
+      }
+      return nova_str;
+   }
+}
+
 fn atual_transicao() -> String {
    match banco_de_dados::le_escolha() {
       Ok(caminho_contido) => {
@@ -50,7 +70,10 @@ fn atual_transicao() -> String {
           * e colocando tudo maiúscula. */
          string
          .replace("_", " ")
-         .to_uppercase()
+         .replace(".xml", "")
+         .titulo()
+         .trim_end()
+         .to_string()
       } Err(_) => 
          { panic!("erro ao extraír caminho!"); }
    }
