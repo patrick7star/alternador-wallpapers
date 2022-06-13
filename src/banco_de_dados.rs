@@ -12,7 +12,7 @@ use std::fs::{OpenOptions, read_to_string, File};
 use std::io::{Write};
 use std::path::{Path, PathBuf};
 // usando própria biblioteca:
-use crate::BD1;
+use super::BD1;
 
 
 pub fn grava_escolha(caminho:PathBuf) -> bool {

@@ -10,29 +10,50 @@ em toda inicialização do computador, ou novo login.
 */
 
 // importando minha biblioteca ...
-use personalizacao::{
-   duracao_atual_transicao,
-   atualiza_xmls, 
-   alterna_transicao,
-   banco_de_dados
-};
 extern crate utilitarios;
-use utilitarios::legivel;
-
-// bibliotes externas:
-extern crate fastrand;
-extern crate xshell;
-use xshell::Cmd;
+use utilitarios::{aleatorio, legivel};
 
 // bibliotecas do Rust:
 use std::time::{Duration, Instant};
 use std::thread::sleep;
+use std::process::Command;
+
+// próprios módulos:
+mod banco_de_dados;
+mod transicao;
+mod atualizacoes;
+mod comparacao;
+
+use transicao::{
+   alterna_transicao,
+   duracao_atual_transicao
+};
+use atualizacoes::atualiza_xmls;
 
 /* o máximo e mínimo de tempo que deve
  * ser selecionada uma nova transição-
  * de-imagens é entre 5h e 8h. */
 const MINIMO:u16 = 1_600;
 const MAXIMO:u16 = 3_600;
+/* caminho do diretório que será trabalhado.
+ * diretório onde será varrido por 
+ * slides-de-transição. */
+const RAIZ:&str = concat!(env!("HOME"), "/Pictures");
+// registros de mudanças feitas.
+const BD1:&str = concat!(
+   env!("HOME"),
+   "/Documents/códigos_rust",
+   "/personalização/data",
+   "/ultima_escolha.txt"
+);
+/* caminho para novo arquivo que armazenará
+ * tais registro de data. */
+const CAMINHO_ARQUIVO:&str = concat!(
+   env!("HOME"),
+   "/Documents/códigos_rust",
+   "/personalização/data",
+   "/data_de_registro.dat" 
+);
 
 // extensão para o objeto String.
 trait Extensao {
@@ -96,12 +117,12 @@ fn popup_notificacao() {
       "--app-name=AlternaWallpaper",
       mensagem.as_str()
    ];
-   let envia_notificacao:Cmd = {
-      Cmd::new("notify-send")
-      .args(argumentos.into_iter())
-      .echo_cmd(false)
-   };
-   envia_notificacao.run().unwrap();
+
+   // executando comando ...
+   Command::new("notify-send")
+   .args(argumentos.into_iter())
+   .spawn()
+   .unwrap();
 }
 
 fn main() {
@@ -111,7 +132,7 @@ fn main() {
     * passar tal, aciona uma nova transição-de-
     * walpapers. Tal tempo 'tf' estará entre 
     * um MÁXIMO E MÍNIMO. */
-   let tf:u16 = fastrand::u16(MINIMO..=MAXIMO);
+   let tf:u16 = aleatorio::sortear::u16(MINIMO..=MAXIMO);
    let mut tempo_final = Duration::from_secs(tf as u64);
    let mut execucao_inicial:bool = false;
    /* toda vez que for acionada no começo de

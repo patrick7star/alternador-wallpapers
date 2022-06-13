@@ -22,13 +22,23 @@ em Python. Estará junto no diretório das
 */
 
 // importando do caixote principal.
-use crate::{Cmd, DateTuple, PathBuf, xshell, CAMINHO_ARQUIVO};
+use super::{CAMINHO_ARQUIVO, comparacao};
+
+// bibliotecas externas.
+extern crate xshell;
+extern crate date_time;
+extern crate utilitarios;
+use xshell::Cmd;
+use date_time::date_tuple::DateTuple;
+use utilitarios::legivel;
+
 // biblioteca do Rust:
 use std::fs::{File, OpenOptions};
 use std::io::{Write, Read};
 use std::env;
 use std::ffi::OsStr;
 use std::str::FromStr;
+use std::path::PathBuf;
 
 
 pub trait Serializacao {
@@ -85,10 +95,22 @@ fn registra_no_bd(data:DateTuple) {
 
 fn recupera_do_bd() -> DateTuple {
    let mut banco_de_dados:File = {
-      OpenOptions::new()
+      match OpenOptions::new()
       .read(true)
-      .open(CAMINHO_ARQUIVO)
-      .unwrap()
+      .open(CAMINHO_ARQUIVO) {
+         Ok(file) => file,
+         Err(_) => {
+            let hoje = {
+               DateTuple::today()
+               .next_date()
+               .next_date()
+               .next_date()
+               .next_date()
+            };
+            registra_no_bd(hoje);
+            panic!("não havia arquivos com datas registradas!");
+         },
+      }
    };
    // escrevendo dados em disco ...
    let mut bytes:[u8; 4] = [0, 0, 0, 0];
@@ -145,6 +167,10 @@ ultima_atualizacao:DateTuple, numero_de_dias:u8) -> bool {
          return true; 
       } else { return false; }
    }
+   /* se a contabilidade falhar, então é hora de
+    * atualizar. */
+   //else if comparacao::contabilidade_esta_ok()
+   //   { return true; }
    /* no caso clássico de a "última atualização"
     * ter sido feita, ou hoje, ou a "tempos"
     * atrás, vamos analisar com mais calma o 
@@ -215,9 +241,13 @@ pub fn atualiza_xmls() {
    };
 
    /* roda o sinal e informa o resultado, se
-    * a função dá o sinal. */
-   if e_hora_de_atualizar(hoje, ultima, ritmo)  { 
-      print!("atualização ... ");
+    * a função dá o sinal; ou número de wallpapers
+    * contado "diretamente" no diretório, e no 
+    * arquivo XML também têm de ser iguais. */
+   if e_hora_de_atualizar(hoje, ultima, ritmo) || 
+   !comparacao::contabilidade_esta_ok() { 
+      // informação sobre contagem de wallpapers.
+      println!("{}\natualizando ...", comparacao::razao_info());
       // roda comando ...
       match comando.run() {
          Ok(_) => { 
@@ -230,8 +260,8 @@ pub fn atualiza_xmls() {
             { println!("um ERROR ocorreu!"); }
       }
    } else { 
-      // obtendo dias que falta para nova atualização dos XML's.
-      // alias para melhorar legibilidade.
+      /* obtendo dias que falta para nova atualização 
+       * dos XML's, alias para melhorar legibilidade. */
       let dh = hoje.to_days();
       let ua = ultima.to_days();
       /* o cálculo é o rítmo menos os dias
@@ -241,11 +271,12 @@ pub fn atualiza_xmls() {
       // mensagem de negação, e tempo restantes.
       println!(
          "atualização NÃO AUTORIZADA!
-         \rtempo restante é {} dias",
-         dias_restantes
+         \rtempo restante é {}\n",
+         legivel::tempo(dias_restantes as u64, false)
       ); 
    }
 }
+
 
 #[cfg(test)]
 mod tests {
@@ -253,7 +284,7 @@ mod tests {
       DateTuple, Serializacao, env,
       registra_no_bd, recupera_do_bd,
       CAMINHO_ARQUIVO, e_hora_de_atualizar,
-      atualiza_xmls, xshell, PathBuf
+      atualiza_xmls, xshell, PathBuf,
    };
    use std::path::Path;
    use std::fs::{copy, remove_file, rename};
