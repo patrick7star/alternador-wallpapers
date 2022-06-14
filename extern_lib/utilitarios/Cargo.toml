@@ -1,8 +1,0 @@
-[package]
-name = "utilitarios"
-version = "0.3.3"
-edition = "2018"
-
-[dependencies]
-termion="1.5.6"
-terminal_size= { path = "terminal-size-master", version="0.1.17" }
