@@ -52,6 +52,20 @@ def filtra_xml(argumentos):
    return None
 ...
 
+def total_de_imagens(arquivo_xml):
+   instancia = ConfiguracaoXML.instanciar(arquivo_xml)
+
+   # leitura sintática falha em pegar número
+   # de imagens lendo o XML.
+   if instancia.qtd == 0:
+      # lista com imagens do diretório.
+      entradas = os.listdir(instancia.caminho)
+      # descontabilizando o arquivo XML.
+      return len(entradas) - 1
+   ...
+   return instancia.qtd
+...
+
 if __name__ == "__main__":
    from sys import argv
    if __debug__:
