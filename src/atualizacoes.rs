@@ -267,12 +267,13 @@ pub fn atualiza_xmls() {
       /* o cálculo é o rítmo menos os dias
        * decorridos desde á última atualização
        * relaizada. */
-      let dias_restantes = (ritmo as u32) - (dh - ua); 
+      let dias_restantes = (ritmo as u32) - (dh - ua);
+      let dias_restantes:u64 = (dias_restantes as u64) * 3600 * 24;
       // mensagem de negação, e tempo restantes.
       println!(
          "atualização NÃO AUTORIZADA!
          \rtempo restante é {}\n",
-         legivel::tempo(dias_restantes as u64, false)
+         legivel::tempo(dias_restantes, false)
       ); 
    }
 }
