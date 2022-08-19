@@ -1,19 +1,18 @@
 
 // biblioteca padrão do Rust:
 use std::str::FromStr;
-use std::path::{Path, PathBuf};
-use std::fs::{ReadDir};
-use std::ffi::{OsString, OsStr};
 use std::time::Duration;
 use std::env;
+use std::fs::ReadDir;
+use std::path::{Path, PathBuf};
+use std::ffi::{OsString, OsStr};
+use std::process::{Output, Command};
 
 // própria lib.
-use super::RAIZ;
+use super::{RAIZ, PYTHON};
 use super::banco_de_dados::{grava_escolha, le_escolha};
 
 // bibliotecas externas:
-extern crate xshell;
-use xshell::{Cmd, cmd};
 extern crate date_time;
 pub use date_time::date_tuple::DateTuple;
 
@@ -95,11 +94,13 @@ fn parte_ii() -> PathBuf {
    if todos.is_empty()
       { panic!("nenhum arquivo XML de transição foi encontrado!"); }
    // embalharando dados extraídos.
-   fastrand::shuffle(&mut todos[..]);
+   //fastrand::shuffle(&mut todos[..]);
+   embaralha(&mut todos);
    // qual indexar na array.
-   let numero_sorteado = fastrand::usize(0..todos.len());
+   let ultimo: u8 = (todos.len()-1) as u8;
+   let numero_sorteado = sortear::u8(0..=ultimo);
    // retornando seleção.
-   return todos[numero_sorteado].clone();
+   return todos[numero_sorteado as usize].clone();
 }
 
 /* 
@@ -245,24 +246,18 @@ fn parte_v(caminho:PathBuf) -> PathBuf {
    else 
       { opcao = "stretched"; }
 
-   // criando comando.
-   let comando:Cmd = {
-      Cmd::new("gsettings")
-      .args([
-         "set", ambiente, 
-         "picture-options", 
-         opcao
-      ].into_iter())
-      .echo_cmd(false)
-   };
-
    // rodando comando que troca opção da imagem ...
-   comando.run().unwrap();
+   Command::new("gsettings")
+   .arg("set")
+   .arg(ambiente)
+   .arg("picture-options")
+   .arg(opcao)
+   .spawn()
+   .unwrap();
 
    // retornando caminho obtido ...
    return caminho;
-}
-
+} 
 /** executa o comando de troca de wallpapers
  acionando uma transição-de-wallpapers já 
  pré-configurada. */
@@ -310,22 +305,17 @@ pub fn alterna_transicao() {
    };
    let argumentos = ["set", chave, atributo, caminho].into_iter();
 
-   // compondo todo comando.
-   // seus argumentos necessários.
-   // também desabilita escrita do comando no terminal.
-   let comando:Cmd = {
-      Cmd::new("gsettings")
-      .args(argumentos)
-      .echo_cmd(false)
-   };
    // enfim, rodando o comando ...
-   comando.run().unwrap();
+   Command::new("gsettings")
+   .args(argumentos)
+   .spawn()
+   .unwrap();
 
    // mensagem informando o que está ocorrendo.
    println!(
       "\nalternância transição-de-wallpapers automaticamente acionada.
-      \rseleção anterior: \"{}\"
-      \rarquivo selecionado:\"{}\"",
+      \r\tseleção anterior: \"{}\"
+      \r\tarquivo selecionado:\"{}\"",
       ultima_tw, atual_tw
    );
 }
@@ -345,9 +335,14 @@ pub fn duracao_atual_transicao() -> Duration {
       "/personalização/",
       "extern_lib/slide_background/xml_info.py"
    );
-   let comando = cmd!("/usr/bin/python3 -O {caminho_script} {escolha}");
    // array com bytes do resultado!
-   let mut resultado = comando.output().unwrap();
+   let mut resultado: Output = {
+      Command::new(PYTHON)
+      .arg(caminho_script)
+      .arg(escolha)
+      .output()
+      .unwrap()
+   };
    // removendo quebra-de-linha ...
    resultado.stdout.pop().unwrap();
    // formando string com bytes representando número decimal.
@@ -362,10 +357,42 @@ pub fn duracao_atual_transicao() -> Duration {
       /* em caso de erro, sorteio um perído
        * entre uma hora à quatro horas. */
       Err(_) => {
-         let limite_inferior: u64 = 3600;
-         let limite_superior: u64 = 4 * 3600;
-         let tempo = fastrand::u64(limite_inferior..limite_superior);
+         // limites inferior e superior(1h à 4h).
+         let (li, ls): (u64, u64) = (3600, 4*3600);
+         let tempo = sortear::u64(li..=ls);
          Duration::from_secs(tempo) 
+      }
+   }
+}
+
+extern crate utilitarios;
+use utilitarios::aleatorio::sortear;
+
+fn swap<A>(lista: &mut Vec<A>, p1: usize, p2:usize) {
+   let remocao = lista.remove(p1);
+   lista.insert(p2, remocao);
+}
+
+// pega uma lista, e embalhara seus valores.
+fn embaralha<X>(lista: &mut Vec<X>) {
+   let mut tamanho = lista.len();
+   let ultimo: u8 = (tamanho - 1) as u8;
+
+   // se houver apenas dois elementos, pode trocar ou não.
+   if tamanho == 2 {
+      if sortear::bool() 
+         { swap(lista, 0, 1); }
+   } else if tamanho <= 1 {
+      // apenas abandona o programa; nada a fazer.
+      return ();
+   } else {
+      // faz o embaralho o "tamanho da lista" vezes.
+      while tamanho > 0 {
+         let i = sortear::u8(0..=ultimo);
+         let j = sortear::u8(0..=ultimo);
+         if j != i 
+            { swap(lista, i as usize, j as usize); }
+         tamanho -= 1;
       }
    }
 }
@@ -457,5 +484,13 @@ mod tests {
       let t = duracao_atual_transicao(); 
       assert!( t > Duration::from_secs(60));
       println!("valor={}", tempo(t.as_secs(), true));
+   }
+
+   #[test]
+   fn testa_embaralha() {
+      let mut array = vec![1,2,3,4,5];
+      let copia = array.clone();
+      embaralha(&mut array);
+      assert!(dbg!(array) != copia)
    }
 }

@@ -16,6 +16,7 @@ use std::str::FromStr;
 
 // próprio caixote:
 use super::transicao;
+use crate::PYTHON;
 
 
 // conta quantia de imagens de um diretório.
@@ -51,7 +52,7 @@ fn conta_imagens_xml(caminho:&Path) -> u8 {
    // mudando de diretório.
    let dir = concat!(
       env!("RUST_CODES"),
-      "/personalização",
+      "/alternador-wallpapers",
       "/extern_lib",
       "/slide_background"
    );
@@ -62,7 +63,7 @@ fn conta_imagens_xml(caminho:&Path) -> u8 {
       path=caminho_str
    );
    let resultado:Result<Output, _> = {
-      Command::new("/usr/local/bin/python3.10")
+      Command::new(PYTHON)
       .current_dir(Path::new(dir))
       .arg("-c")
       .arg(instrucao.as_str())

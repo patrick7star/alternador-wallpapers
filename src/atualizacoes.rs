@@ -22,13 +22,11 @@ em Python. Estará junto no diretório das
 */
 
 // importando do caixote principal.
-use super::{CAMINHO_ARQUIVO, comparacao};
+use super::{CAMINHO_ARQUIVO, comparacao, PYTHON};
 
 // bibliotecas externas.
-extern crate xshell;
 extern crate date_time;
 extern crate utilitarios;
-use xshell::Cmd;
 use date_time::date_tuple::DateTuple;
 use utilitarios::legivel;
 
@@ -39,6 +37,7 @@ use std::env;
 use std::ffi::OsStr;
 use std::str::FromStr;
 use std::path::PathBuf;
+use std::process::Command;
 
 
 pub trait Serializacao {
@@ -169,8 +168,6 @@ ultima_atualizacao:DateTuple, numero_de_dias:u8) -> bool {
    }
    /* se a contabilidade falhar, então é hora de
     * atualizar. */
-   //else if comparacao::contabilidade_esta_ok()
-   //   { return true; }
    /* no caso clássico de a "última atualização"
     * ter sido feita, ou hoje, ou a "tempos"
     * atrás, vamos analisar com mais calma o 
@@ -210,6 +207,37 @@ ultima_atualizacao:DateTuple, numero_de_dias:u8) -> bool {
    }
 }
 
+fn executa_acao(data: DateTuple) {
+   /* criando comando para executar o script:
+    * formando caminho ... */
+   let mut caminho:PathBuf = PathBuf::new();
+   caminho.push(env!("RUST_CODES"));
+   caminho.push("alternador-wallpapers");
+   caminho.push("extern_lib");
+   caminho.push("slide_background");
+   caminho.push("atualiza_configuracao_xml.py");
+
+   // formando o comando ...
+   let mut interpretador = Command::new(PYTHON);
+   let comando = {
+      interpretador 
+      .arg("-OB")
+      .arg(caminho.as_os_str())
+   };
+
+   // roda comando ...
+   match comando.spawn() {
+      Ok(_) => { 
+         // registra data de útlima atualização.
+         registra_no_bd(data.clone());
+         // marca como feito.
+         println!("feita COM SUCESSO."); 
+      },
+      Err(erro) =>
+         { panic!("um ERROR ocorreu![{}]", erro); }
+   }
+}
+
 /** verifica se decorreu um período pré-estabelecido,
  tirando datas especiais, onde tal será bem mais 
  curto, chegando até ser diário ou menos às vezes;
@@ -224,21 +252,6 @@ pub fn atualiza_xmls() {
    let hoje = DateTuple::today();
    // o rítmo de dias para cada atualização(10 dias).
    let ritmo = 10;
-   // criando comando para executar o script:
-   // formando caminho ...
-   let mut caminho:PathBuf = PathBuf::new();
-   caminho.push(env!("RUST_CODES"));
-   caminho.push("personalização");
-   caminho.push("extern_lib");
-   caminho.push("slide_background");
-   caminho.push("atualiza_configuracao_xml.py");
-   // formando o comando ...
-   let comando:xshell::Cmd = {
-      Cmd::new("/usr/bin/python3")
-      .arg(OsStr::new("-O"))
-      .arg(caminho.as_os_str())
-      .echo_cmd(false)
-   };
 
    /* roda o sinal e informa o resultado, se
     * a função dá o sinal; ou número de wallpapers
@@ -248,17 +261,7 @@ pub fn atualiza_xmls() {
    !comparacao::contabilidade_esta_ok() { 
       // informação sobre contagem de wallpapers.
       println!("{}\natualizando ...", comparacao::razao_info());
-      // roda comando ...
-      match comando.run() {
-         Ok(_) => { 
-            // marca como feito.
-            println!("feita COM SUCESSO."); 
-            // registra data de útlima atualização.
-            registra_no_bd(hoje.clone());
-         },
-         Err(_) =>
-            { println!("um ERROR ocorreu!"); }
-      }
+      executa_acao(hoje);
    } else { 
       /* obtendo dias que falta para nova atualização 
        * dos XML's, alias para melhorar legibilidade. */
@@ -267,8 +270,8 @@ pub fn atualiza_xmls() {
       /* o cálculo é o rítmo menos os dias
        * decorridos desde á última atualização
        * relaizada. */
-      let dias_restantes = (ritmo as u32) - (dh - ua);
-      let dias_restantes:u64 = (dias_restantes as u64) * 3600 * 24;
+      let dias_restantes = (ritmo as u32) - (dh - ua); 
+      let dias_restantes: u64 = (dias_restantes as u64) * 3600 * 24;
       // mensagem de negação, e tempo restantes.
       println!(
          "atualização NÃO AUTORIZADA!
@@ -282,10 +285,10 @@ pub fn atualiza_xmls() {
 #[cfg(test)]
 mod tests {
    use super::{
-      DateTuple, Serializacao, env,
+      DateTuple, Serializacao, env, PYTHON,
       registra_no_bd, recupera_do_bd,
       CAMINHO_ARQUIVO, e_hora_de_atualizar,
-      atualiza_xmls, xshell, PathBuf,
+      atualiza_xmls, PathBuf, Command
    };
    use std::path::Path;
    use std::fs::{copy, remove_file, rename};
@@ -585,11 +588,10 @@ mod tests {
       caminho.push("slide_background");
       caminho.push("atualiza_configuracao_xml.py");
       // formando o comando ...
-      let  comando:xshell::Cmd = {
-         xshell::Cmd::new("python3")
+      let mut interpretador = Command::new(PYTHON);
+      let comando = {
+         interpretador
          .arg(caminho.as_os_str())
-         .echo_cmd(false)
-         .ignore_stdout()
       };
 
       /* roda o sinal e informa o resultado, se
@@ -597,7 +599,7 @@ mod tests {
       if e_hora_de_atualizar(hoje.clone(), ultima.clone(), ritmo)  { 
          print!("atualizando ... ");
          // roda comando ...
-         match comando.run() {
+         match comando.spawn() {
             Ok(_) => {
                println!("feito.");
                // grava data de alteração.
