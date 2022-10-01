@@ -9,12 +9,20 @@ use std::ffi::{OsString, OsStr};
 use std::process::{Output, Command};
 
 // própria lib.
-use super::{RAIZ, PYTHON};
-use super::banco_de_dados::{grava_escolha, le_escolha};
+use super::{
+   RAIZ, PYTHON,
+   banco_de_dados::{grava_escolha, le_escolha}
+};
 
 // bibliotecas externas:
 extern crate date_time;
 pub use date_time::date_tuple::DateTuple;
+
+// contiação do módulo ...
+mod embaralhamento;
+/* também re-exporta função para não ter
+ * que importar aqui também. */
+use embaralhamento::{sortear, embaralha};
 
 /* acha todos XML que contém uma transição 
  * programada de determinados wallpapers, 
@@ -66,7 +74,6 @@ pub fn parte_i() -> Vec<PathBuf> {
                Some(string) => string,
                None => OsStr::new("nada"),
             };
-            //if caminho_i.extension().unwrap() == OsStr::new("xml"){ 
             if extensao == OsStr::new("xml") {
                arquivos_xml.push(caminho_i.to_path_buf());
                break;
@@ -90,17 +97,62 @@ fn parte_ii() -> PathBuf {
    // todas transições-de-wallpapers conf.
    let mut todos = parte_i();
    // tem que ser não vázio.
-   //assert!(todos.len() > 0);
    if todos.is_empty()
       { panic!("nenhum arquivo XML de transição foi encontrado!"); }
    // embalharando dados extraídos.
-   //fastrand::shuffle(&mut todos[..]);
    embaralha(&mut todos);
    // qual indexar na array.
    let ultimo: u8 = (todos.len()-1) as u8;
    let numero_sorteado = sortear::u8(0..=ultimo);
    // retornando seleção.
    return todos[numero_sorteado as usize].clone();
+}
+
+/* computa o percentual quão decorreu 
+ * até o momento no período do feriado.
+ */
+type Periodo = (DateTuple, DateTuple);
+type Conclusao = Option<f32>;
+fn percentual(hoje: DateTuple, periodo: Periodo) -> Conclusao {
+   // não se pode computar ainda ...
+   // depois do período.
+   if hoje.to_days() > periodo.1.to_days()
+      { return None; }
+   // antes do ínicio.
+   else if hoje.to_days() < periodo.0.to_days()
+      { return None; }
+
+   let a = hoje.to_days() - periodo.0.to_days();
+   let t = periodo.1.to_days() - periodo.0.to_days();
+   Some((a as f32) / (t as f32))
+}
+
+/* retorna o booleano passado, dependendo
+ * apenas de quão perto do feriado
+ * está. Se está alguns dias, ou no 
+ * dia, é certeza que aparecerá os wallpapers
+ * especiais para o feriado;  se está 
+ * entre 50 à 25 porcento longe do feriádo
+ * a probabilidade de um wallpaper do feriado
+ * aparecer é 70%; já se está menos da 
+ * metade de dias do feriado, a probabilidade
+ * cai para 50%, ou seja, pode, ou não
+ * aparecer o wallpaper para ele. */
+fn avalia_booleano(percentual: f32, valor: bool) -> bool {
+   // baseado no período de conclusão.
+   if percentual < 0.50 {
+      if sortear::bool() { valor }
+      else 
+         { false }
+   } else if percentual >= 0.50 && percentual < 0.75 {
+      // probabilidade de 70% porcento.
+      if sortear::u8(1..=10) <= 7 { valor }
+      else
+         { false }
+   }
+   else 
+      // passou de 80% do periódo validação como certa.
+      { valor }
 }
 
 /* 
@@ -116,18 +168,57 @@ fn parte_iii(hoje:DateTuple) -> PathBuf {
     * especiais: Halloween e Natal.  */
    let mes = hoje.get_month();
    let dia = hoje.get_date();
+   let ano = hoje.get_year();
+
    // Halloween ou próximo dele.
    let e_periodo_de_halloween:bool = {
-      (dia >= 28 && mes == 9) ||
-      (dia >= 1 && dia <= 31 && mes == 10) 
+      let periodo = (
+         DateTuple::new(ano, 9, 28).unwrap(),
+         DateTuple::new(ano, 10, 31).unwrap()
+      );
+      let valor_logico = {
+         (dia >= 28 && mes == 9) ||
+         (dia >= 1 && dia <= 31 && mes == 10) 
+      };
+      match percentual(hoje.clone(), periodo) {
+         Some(p) => {
+            avalia_booleano(p, valor_logico)
+         } None => 
+            { valor_logico }
+      }
    };
    // Natal ou próximo dele.
-   let e_periodo_de_natal:bool = {
-      mes == 12 && dia >= 1 && dia <= 25
+   let e_periodo_de_natal: bool = {
+      let periodo = (
+         DateTuple::new(ano, mes, 1).unwrap(),
+         DateTuple::new(ano, mes, 25).unwrap()
+      );
+      
+      // baseado no período de conclusão.
+      match percentual(hoje.clone(), periodo) {
+         Some(p) => {
+            avalia_booleano(p, mes == 12 && dia >= 1 && dia <= 25 )
+         } None => 
+            { mes == 12 && dia >= 1 && dia <= 25 }
+      }
    };
    // Aniversário de Brasília.
    let e_aniversario_de_brasilia:bool = {
-      mes == 4 && dia >= 12 && dia <= 21
+      let periodo = (
+         DateTuple::new(ano, mes, 10).unwrap(),
+         DateTuple::new(ano, mes, 21).unwrap()
+      );
+      let valor_logico = {
+         mes == 4 && 
+         dia >= 10 && 
+         dia <= 21
+      };
+      match percentual(hoje.clone(), periodo) {
+         Some(p) => {
+            avalia_booleano(p, valor_logico)
+         } None => 
+            { valor_logico }
+      }
    };
 
    // adicionando raíz ...
@@ -145,9 +236,8 @@ fn parte_iii(hoje:DateTuple) -> PathBuf {
       caminho.push("brasília_wallpapers");
       caminho.push("brasília_wallpapers.xml");
       return caminho;
-   }
-   // todos demais caem neste caso.
-   else { 
+   } else { 
+      // todos demais caem neste caso.
       let mut nova = transicao;
       let mut nome:&str = {
          nova.as_path()
@@ -258,6 +348,7 @@ fn parte_v(caminho:PathBuf) -> PathBuf {
    // retornando caminho obtido ...
    return caminho;
 } 
+
 /** executa o comando de troca de wallpapers
  acionando uma transição-de-wallpapers já 
  pré-configurada. */
@@ -332,7 +423,7 @@ pub fn duracao_atual_transicao() -> Duration {
    // caminho até o script que pega dados do XML.
    let caminho_script = concat!(
       env!("RUST_CODES"),
-      "/personalização/",
+      "/alternador-wallpapers/",
       "extern_lib/slide_background/xml_info.py"
    );
    // array com bytes do resultado!
@@ -365,37 +456,6 @@ pub fn duracao_atual_transicao() -> Duration {
    }
 }
 
-extern crate utilitarios;
-use utilitarios::aleatorio::sortear;
-
-fn swap<A>(lista: &mut Vec<A>, p1: usize, p2:usize) {
-   let remocao = lista.remove(p1);
-   lista.insert(p2, remocao);
-}
-
-// pega uma lista, e embalhara seus valores.
-fn embaralha<X>(lista: &mut Vec<X>) {
-   let mut tamanho = lista.len();
-   let ultimo: u8 = (tamanho - 1) as u8;
-
-   // se houver apenas dois elementos, pode trocar ou não.
-   if tamanho == 2 {
-      if sortear::bool() 
-         { swap(lista, 0, 1); }
-   } else if tamanho <= 1 {
-      // apenas abandona o programa; nada a fazer.
-      return ();
-   } else {
-      // faz o embaralho o "tamanho da lista" vezes.
-      while tamanho > 0 {
-         let i = sortear::u8(0..=ultimo);
-         let j = sortear::u8(0..=ultimo);
-         if j != i 
-            { swap(lista, i as usize, j as usize); }
-         tamanho -= 1;
-      }
-   }
-}
 
 // testes realizados.
 #[cfg(test)]
@@ -486,11 +546,4 @@ mod tests {
       println!("valor={}", tempo(t.as_secs(), true));
    }
 
-   #[test]
-   fn testa_embaralha() {
-      let mut array = vec![1,2,3,4,5];
-      let copia = array.clone();
-      embaralha(&mut array);
-      assert!(dbg!(array) != copia)
-   }
 }

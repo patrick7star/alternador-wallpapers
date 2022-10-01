@@ -158,7 +158,7 @@ fn main() {
     * 'transição', sem precisar nova inicialização
     * do sistema/ou login;... em média, de 5 à 8 
     * horas, decorrida da última mudança.  */
-   pausa_aleatoria();
+   //pausa_aleatoria();
 
    loop {
       /* se tiver "atigindo" tal tempo, então
