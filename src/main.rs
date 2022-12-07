@@ -11,20 +11,22 @@ em toda inicialização do computador, ou novo login.
 
 // importando minha biblioteca ...
 extern crate utilitarios;
-use utilitarios::aleatorio;
+use utilitarios::aleatorio::sortear;
 use utilitarios::legivel::tempo as tempo_l;
 
 // bibliotecas do Rust:
-use std::time::{Duration, Instant};
+use std::time::{Duration};
 use std::thread::sleep;
 use std::process::Command;
-use std::ops::RangeInclusive;
+//use std::ops::RangeInclusive;
 
 // próprios módulos:
 mod banco_de_dados;
 mod transicao;
 mod atualizacoes;
 mod comparacao;
+mod temporizador;
+use temporizador::*;
 
 use transicao::{
    alterna_transicao,
@@ -129,24 +131,32 @@ fn popup_notificacao() {
 
 fn pausa_aleatoria() {
    /* pausa de alguns minutos para se curtir 
-    * a transição anterior. */
-   let i: RangeInclusive<u64> = 10*60..=15*60;
-   let alguns_minutos: u64;
-   alguns_minutos = aleatorio::sortear::u64(i);
+    * a transição anterior. Claro, eles estão
+    * quantificados em segundos. */
+   let minutos = sortear::u64(10*60..=15*60);
+
    // informando tempo de espera(te).
-   let te = tempo_l(alguns_minutos, true);
-   println!("tempo de espera para iniciar de fato ... {}", te);
-   sleep(Duration::from_secs(alguns_minutos));
+   let timer = Temporizador::novo(Duration::from_secs(minutos));
+   while !timer.esgotado() {
+      println!(
+         "tempo de espera para iniciar de fato ...{:>10}", 
+         tempo_l(timer.contagem().as_secs(), true)
+      );
+      let segundos = sortear::u64(9..=33);
+      let t = Duration::from_secs(segundos);
+      sleep(t.clone());
+   }
 }
 
 fn main() {
-  // marcando tempo inicial de contagem ...
-   let mut cronometro = Instant::now();
+   // marcando tempo inicial de contagem ...
+   //let mut cronometro = Instant::now();
+   let mut cronometro = Cronometro::novo();
    /* selecionando um 'tempo final' para que ao 
     * passar tal, aciona uma nova transição-de-
     * walpapers. Tal tempo 'tf' estará entre 
     * um MÁXIMO E MÍNIMO. */
-   let tf:u16 = aleatorio::sortear::u16(MINIMO..=MAXIMO);
+   let tf:u16 = sortear::u16(MINIMO..=MAXIMO);
    let mut tempo_final = Duration::from_secs(tf as u64);
    let mut execucao_inicial:bool = false;
 
@@ -158,13 +168,14 @@ fn main() {
     * 'transição', sem precisar nova inicialização
     * do sistema/ou login;... em média, de 5 à 8 
     * horas, decorrida da última mudança.  */
-   //pausa_aleatoria();
+   pausa_aleatoria();
 
    loop {
       /* se tiver "atigindo" tal tempo, então
        * trocar a transição-de-wallpaper atual. */
       let aciona_uma_nova_transicao = {
-         cronometro.elapsed() > tempo_final 
+         //cronometro.elapsed() > tempo_final 
+         cronometro > tempo_final
                      &&
          execucao_inicial
       };
@@ -172,7 +183,8 @@ fn main() {
       if aciona_uma_nova_transicao {
          alterna_transicao();
          // zerá contador... para nova contagem.
-         cronometro = Instant::now();
+         //cronometro = Instant::now();
+         cronometro.reseta();
          /* pegando duração do tempo total de apresentação
           * da nova transição de slides, somado à 1min para 
           * acabar toda apresentação. */
@@ -192,11 +204,14 @@ fn main() {
          execucao_inicial = true;
       } else {
          // obtendo tempo para próxima transição.
-         let decorrido = cronometro.elapsed();
+         //let decorrido = cronometro.elapsed();
+         let decorrido = cronometro.marca();
          let tempo_restante = tempo_final - decorrido;
          // traduzindo segundos para algo legível.
-         let str_tr = tempo_l(tempo_restante.as_secs(), true);
-         println!("contagem regressiva para próxima transição {}", str_tr);
+         println!(
+            "contagem regressiva para próxima transição {}",
+            tempo_l(tempo_restante.as_secs(), true)
+         );
       }
 
       /* possívelmente realizando uma atualização
@@ -204,8 +219,8 @@ fn main() {
        * diretório onde ficam. */
       atualiza_xmls();
 
-      // intercalar os loops a cada 1 min.
-      sleep(Duration::from_secs(60));
+      // intercalar os loops à cada, aproximadamente, 1 min.
+      sleep(Duration::from_secs(sortear::u64(30..=60)));
    }
 }
 
