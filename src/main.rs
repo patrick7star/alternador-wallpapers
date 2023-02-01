@@ -125,8 +125,9 @@ fn popup_notificacao() {
    // executando comando ...
    Command::new("notify-send")
    .args(argumentos.into_iter())
-   .spawn()
-   .unwrap();
+   .spawn().unwrap()
+   .wait().unwrap();
+   println!("notificação foi \"plotada\" com sucesso.");
 }
 
 fn pausa_aleatoria() {
@@ -150,7 +151,6 @@ fn pausa_aleatoria() {
 
 fn main() {
    // marcando tempo inicial de contagem ...
-   //let mut cronometro = Instant::now();
    let mut cronometro = Cronometro::novo();
    /* selecionando um 'tempo final' para que ao 
     * passar tal, aciona uma nova transição-de-
@@ -158,7 +158,7 @@ fn main() {
     * um MÁXIMO E MÍNIMO. */
    let tf:u16 = sortear::u16(MINIMO..=MAXIMO);
    let mut tempo_final = Duration::from_secs(tf as u64);
-   let mut execucao_inicial:bool = false;
+   let mut execucao_inicial = false;
 
    /* toda vez que for acionada no começo de
     * do sistema/ou login uma nova 'transição

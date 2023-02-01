@@ -227,13 +227,13 @@ fn executa_acao(data: DateTuple) {
 
    // roda comando ...
    match comando.spawn() {
-      Ok(_) => { 
+      Ok(mut processo) => { 
          // registra data de útlima atualização.
          registra_no_bd(data.clone());
+         processo.wait().unwrap(); 
          // marca como feito.
-         println!("feita COM SUCESSO."); 
-      },
-      Err(erro) =>
+         println!("feita COM SUCESSO.")
+      } Err(erro) =>
          { panic!("um ERROR ocorreu![{}]", erro); }
    }
 }
@@ -259,6 +259,10 @@ pub fn atualiza_xmls() {
     * arquivo XML também têm de ser iguais. */
    if e_hora_de_atualizar(hoje, ultima, ritmo) || 
    !comparacao::contabilidade_esta_ok() { 
+      if !comparacao::contabilidade_esta_ok()
+         { println!("qtd. de imagens alterada."); }
+      if e_hora_de_atualizar(hoje, ultima, ritmo)
+         { println!("passou do limite."); }
       // informação sobre contagem de wallpapers.
       println!("{}\natualizando ...", comparacao::razao_info());
       executa_acao(hoje);
@@ -583,7 +587,7 @@ mod tests {
       // formando caminho ...
       let mut caminho:PathBuf = PathBuf::new();
       caminho.push(env!("RUST_CODES"));
-      caminho.push("personalização");
+      caminho.push("alternador-wallpapers");
       caminho.push("extern_lib");
       caminho.push("slide_background");
       caminho.push("atualiza_configuracao_xml.py");
