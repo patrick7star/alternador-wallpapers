@@ -15,10 +15,9 @@ use utilitarios::aleatorio::sortear;
 use utilitarios::legivel::tempo as tempo_l;
 
 // bibliotecas do Rust:
-use std::time::{Duration};
+use std::time::Duration;
 use std::thread::sleep;
 use std::process::Command;
-//use std::ops::RangeInclusive;
 
 // próprios módulos:
 mod banco_de_dados;
@@ -26,6 +25,8 @@ mod transicao;
 mod atualizacoes;
 mod comparacao;
 mod temporizador;
+mod compilacao;
+
 use temporizador::*;
 
 use transicao::{
@@ -143,13 +144,21 @@ fn pausa_aleatoria() {
          "tempo de espera para iniciar de fato ...{:>10}", 
          tempo_l(timer.contagem().as_secs(), true)
       );
-      let segundos = sortear::u64(9..=33);
+      let segundos = sortear::u64(9..=43);
       let t = Duration::from_secs(segundos);
       sleep(t.clone());
    }
 }
 
 fn main() {
+   /* se for o artefato de depuração, então 
+    * já colocar em caminho uma possível 
+    * compilação da versão otimizada. */
+    if compilacao::executa_compilacao()
+      { println!("uma compilação foi realizada!"); }
+   else
+      { println!("nenhuma compilação foi inicializada!"); }
+
    // marcando tempo inicial de contagem ...
    let mut cronometro = Cronometro::novo();
    /* selecionando um 'tempo final' para que ao 
@@ -223,5 +232,4 @@ fn main() {
       sleep(Duration::from_secs(sortear::u64(30..=60)));
    }
 }
-
 

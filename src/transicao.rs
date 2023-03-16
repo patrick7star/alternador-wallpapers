@@ -343,6 +343,8 @@ fn parte_v(caminho:PathBuf) -> PathBuf {
    .arg("picture-options")
    .arg(opcao)
    .spawn()
+   .unwrap()
+   .wait()
    .unwrap();
 
    // retornando caminho obtido ...
@@ -358,7 +360,7 @@ pub fn alterna_transicao() {
     * na data de hoje. */
    let data_de_hoje = DateTuple::today();
    // último alteração foi ... :
-   let ultima_tw:String = match le_escolha() {
+   let ultima_tw = match le_escolha() {
       Ok(caminho) => {
          let str:String = String::from( 
             caminho.as_path()
@@ -372,7 +374,7 @@ pub fn alterna_transicao() {
    };
    let nova_transicao = parte_v(parte_iv(data_de_hoje));
    // arquivo selecionado agora:
-   let atual_tw:&str = {
+   let atual_tw: &str = {
       nova_transicao.as_path()
       .file_name().unwrap()
       .to_str().unwrap()
@@ -394,19 +396,19 @@ pub fn alterna_transicao() {
       else
          { panic!("não implementado para tal ambiente!"); }
    };
-   let argumentos = ["set", chave, atributo, caminho].into_iter();
-
+   //let argumentos = ["set", chave, atributo, caminho].into_iter();
    // enfim, rodando o comando ...
-   Command::new("gsettings")
-   .args(argumentos)
-   .spawn()
-   .unwrap();
+   let mut comando_alterna = Command::new("gsettings");
+   comando_alterna.args(["set", chave, atributo, caminho].into_iter());
+
+   // executando...
+   comando_alterna.spawn().unwrap().wait().unwrap();
 
    // mensagem informando o que está ocorrendo.
    println!(
       "\nalternância transição-de-wallpapers automaticamente acionada.
       \r\tseleção anterior: \"{}\"
-      \r\tarquivo selecionado:\"{}\"",
+      \r\tarquivo selecionado:\"{}\"\n",
       ultima_tw, atual_tw
    );
 }

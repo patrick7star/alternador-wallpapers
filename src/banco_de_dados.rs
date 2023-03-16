@@ -45,6 +45,10 @@ pub fn grava_escolha(caminho:PathBuf) -> bool {
    arquivo.write(nome.as_bytes()).unwrap();
    // quebra-de-linha necessária para separação.
    arquivo.write(b"\n").unwrap();
+
+   //faz agora a escrita da seleção feita.
+   registra_no_historico(nome);
+
    // confirmação de tudo okay ...
    return true;
 }
@@ -70,14 +74,42 @@ pub fn le_escolha() -> Result<PathBuf, &'static str> {
    return Ok(caminho);
 }
 
+// arquivo onde serão gravados.
+const SELECOES_FEITAS:&str = concat!(
+   env!("RUST_CODES"),
+   "/alternador-wallpapers/data",
+   "/historico_de_escolhas_feitas.txt"
+);
+
+/* grava seleção feito num banco de dados
+ * próprio, para propósitos de pesquisas
+ * posteriores. */
+fn registra_no_historico(nome: &str) {
+   // abrindo bd ...
+   let mut arquivo: File = {
+      OpenOptions::new()
+      .create(true)
+      .append(true)
+      .open(SELECOES_FEITAS)
+      .unwrap()
+   };
+   arquivo.write(nome.as_bytes()).unwrap();
+   /* colocando quebra de linha, mirando 
+    * próxima concatenação. */
+   arquivo.write("\n".as_bytes()).unwrap();
+}
+
 #[cfg(test)]
 mod tests {
    use super::*;
+   use crate::transicao::parte_i;
+   use std::collections::HashSet;
+   use std::fs::remove_file;
 
    #[test]
    fn testando_escrita() {
-      let arquivo_teste = Path::new("dir/sub_dir/sub_sub_dir/arquivo.txt")
-      .to_path_buf();
+      let caminho = "dir/sub_dir/sub_sub_dir/arquivo.txt";
+      let arquivo_teste = Path::new(caminho).to_path_buf();
       assert!(grava_escolha(arquivo_teste.clone()));
    }
 
@@ -90,5 +122,54 @@ mod tests {
       caminho_i.push("sub_sub_dir");
       caminho_i.push("arquivo.txt");
       assert_eq!(caminho, caminho_i);
+   }
+
+   #[test]
+   fn verificacao_escrita_de_selecao() {
+      /* teste, inicialmente, só funciona
+       * quando não existe um arquivo, para
+       * não comrromper os dados já depositados
+       * lá. */
+      let caminho = Path::new(SELECOES_FEITAS);
+      let mensagem = concat!(
+         "arquivo já existe, pode comrromper ", 
+         "atual banco de dados"
+      );
+      if caminho.exists()
+         { panic!("{}", mensagem); }
+      let mut nomes = HashSet::<String>::new();
+
+      for pth in parte_i() { 
+         let nome = {
+            pth.to_str().unwrap()
+            .rsplit_once("/").take()
+            .unwrap().1
+         };
+         // colocando nome no histórico.
+         registra_no_historico(nome);
+         println!("{}", nome); 
+         nomes.insert(nome.to_string());
+      }
+      // colocou todos lá.
+      assert!(!nomes.is_empty());
+
+      /* pegando todas strings escritas no arquivo,
+       * e as enfiando numa array. */
+      let mut conteudo: Vec<String> = {
+         read_to_string(SELECOES_FEITAS)
+         .unwrap().split_whitespace()
+         .map(|item| item.to_string())
+         .collect()
+      };
+      let nomes_no_historico: HashSet<String>;
+      nomes_no_historico = HashSet::from_iter(conteudo.drain(..));
+      assert!(!nomes_no_historico.is_empty());
+      println!("{:?}", nomes_no_historico);
+      /* ambos conjutos têm que ser iguais, ou seja,
+       * conter os mesmos elementos. */
+      assert_eq!(nomes_no_historico, nomes);
+
+      // excluindo arquivo para nova rodada.
+      remove_file(SELECOES_FEITAS).unwrap();
    }
 }
