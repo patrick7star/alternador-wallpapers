@@ -1,0 +1,6 @@
+cores.xml
+desenhos_animados.xml
+aves.xml
+wallpapers_de_estradas.xml
+background-1.xml
+ubuntu_mate_photos.xml
