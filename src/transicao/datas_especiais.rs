@@ -47,9 +47,13 @@ use std::str::FromStr;
 // biblioteca externa:
 use date_time::date_tuple::DateTuple;
 
-// melhora codificação:
+// melhora codificação e legibilidade:
 type Cabecalho = HashMap<String, Vec<String>>;
 type LinhaData = (String, DateTuple, DateTuple);
+/* array com formatação final da linha das 
+ * 'Datas Especiais'. Veja a estrutura 
+ * 'LinhaData' para compreede-la bem. */
+type DEs = Option<Vec<LinhaData>>;
 
 
 /* separa um cabeçalho, e as linhas ligadas à ele,
@@ -61,14 +65,18 @@ fn todas_configuracoes(conteudo: String) -> Cabecalho {
    let mut mapa = Cabecalho::new();
    let mut chave: String = "".to_string();
 
-   for l in conteudo.lines() {
+   for l in conteudo.lines().filter(|s| !s.contains(&"#")) {
       // se char um novo cabeçalho.
       if l.contains(&"[") && l.contains(&"]") 
          { cabecalho_detectado = true; } 
       // acessa atual chave.
       else { 
+         /* reduzindo impressões desnecessárias
+          * por não serem, obviamente, chaves. */
+         if chave == ""
+            { continue; }
          match mapa.get_mut(&chave) {
-            Some(mut atual) => { 
+            Some(atual) => { 
                let linha = {
                   l.trim_matches('\r')
                   .trim_matches('\t')
@@ -77,9 +85,8 @@ fn todas_configuracoes(conteudo: String) -> Cabecalho {
                };
                if linha != ""
                   { atual.push(linha); }
-            } 
-            None => 
-               { println!("chave não existe, provavelmente espaço vázio."); }
+            } None => { 
+               println!("chave '{}' não existe, provavelmente espaço vázio.", chave); }
          };
       }
 
@@ -131,9 +138,37 @@ fn parse_linha(linha: String) -> LinhaData {
    return (arquivo_xml, data_inicio, data_fim);
 }
 
+/* pega do mapa apenas as 'datas especiais',
+ * entregando já formatada suas linhas; e
+ * claro que se não houver tanto o cabeçalho,
+ * quanto nada anexado à ele, simplesmente
+ * "nada" será retornado. */
+fn coleta_datas_especiais(conteudo: String) -> DEs  {
+   let mapa = todas_configuracoes(conteudo);
+   let chave = String::from("Datas Especiais");
+   
+   // se não houver a chave, já rejeita.
+   if !mapa.contains_key(&chave)
+      { return None; }
+
+   let mut lista_des: Vec<LinhaData> = vec![];
+   // se a lista está vázia, também a rejeita.
+   if mapa.get(&chave).unwrap().is_empty()
+      { return None; }
+
+   // pegando e transformando strings nas devidas estruturas.
+   for s in mapa.get(&chave).unwrap().iter()
+      { lista_des.push(parse_linha(s.to_string())); }
+
+   return Some(lista_des);
+}
+
+
 #[cfg(test)]
+#[allow(non_snake_case)]
 mod tests {
    use super::*;
+   use std::fs::read_to_string;
 
    #[test]
    fn saida_sastifatoria() {
@@ -239,5 +274,57 @@ mod tests {
            DateTuple::new(ano, 3, 15).unwrap()
          )
       );
+   }
+
+   #[test]
+   fn coletaDatasEspeciais() {
+      let entrada = "[Datas Especiais]
+
+         saint_patrick_day: 03/03 à 15/03
+         boogyman: 15/06 à 04/07
+         maria_rosa: 28/10 à 31/10
+         dia-de-santa-luzia  : 20/06  à      10/07
+         domingo_sagrado :  12/09       à 18/09
+            milagra-são-nunca: 11/05  à  23/05
+      ".to_string();
+      let saida = coleta_datas_especiais(entrada);
+      assert!(saida.is_some());
+      let array = saida.unwrap();
+      assert_eq!(array.len(), 6);
+      let ano = DateTuple::today().get_year();
+      let exemplos = [
+         ("milagra-são-nunca.xml".to_string(), 
+           DateTuple::new(ano, 05, 11).unwrap(),
+           DateTuple::new(ano, 5, 23).unwrap()
+         ),
+         ("saint_patrick_day.xml".to_string(), 
+           DateTuple::new(ano, 3, 3).unwrap(),
+           DateTuple::new(ano, 3, 15).unwrap()
+         ),
+         ("maria_rosa.xml".to_string(), 
+           DateTuple::new(ano, 10, 28).unwrap(),
+           DateTuple::new(ano, 10, 31).unwrap()
+         ),
+         ("dia-de-santa-luzia.xml".to_string(), 
+           DateTuple::new(ano, 06, 20).unwrap(),
+           DateTuple::new(ano, 7, 10).unwrap()
+         ),
+         ("domingo_sagrado.xml".to_string(), 
+           DateTuple::new(ano, 9, 12).unwrap(),
+           DateTuple::new(ano, 9, 18).unwrap()
+         )
+      ];
+      for E in exemplos.iter() {
+         assert!(array.contains(E));
+      }
+   }
+
+   #[test]
+   fn visualizandoArquivoDeDEs() {
+      let caminho = "src/transicao/datas_especiais.conf";
+      let conteudo = read_to_string(caminho).unwrap();
+      for ld in coleta_datas_especiais(conteudo).unwrap() {
+         println!("{:?}", ld);
+      }
    }
 }
