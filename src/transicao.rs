@@ -20,6 +20,7 @@ pub use date_time::date_tuple::DateTuple;
 
 // contiação do módulo ...
 mod embaralhamento;
+mod datas_especiais;
 /* também re-exporta função para não ter
  * que importar aqui também. */
 use embaralhamento::{sortear, embaralha};
