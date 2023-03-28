@@ -42,7 +42,7 @@
  */
 
 // biblioteca padrão:
-use std::collections::HashMap;
+use std::collections::{HashMap};
 use std::str::FromStr;
 // biblioteca externa:
 use date_time::date_tuple::DateTuple;
@@ -54,6 +54,10 @@ type LinhaData = (String, DateTuple, DateTuple);
  * 'Datas Especiais'. Veja a estrutura 
  * 'LinhaData' para compreede-la bem. */
 type DEs = Option<Vec<LinhaData>>;
+/* o primeiro elemento é o ínicio, o segundo é
+ * o último, ou a data de feriádo na maioria dos
+ * casos aqui. */
+type IntervaloData = (DateTuple, DateTuple);
 
 
 /* separa um cabeçalho, e as linhas ligadas à ele,
@@ -161,6 +165,145 @@ fn coleta_datas_especiais(conteudo: String) -> DEs  {
       { lista_des.push(parse_linha(s.to_string())); }
 
    return Some(lista_des);
+}
+
+/* faz uma correção no 'DateTuple', em especificamente
+ * o ano, para propósitos nos cálculos da codificação. */
+fn corrige_dt(hoje: DateTuple, periodo: IntervaloData) 
+  -> (DateTuple, IntervaloData) 
+{
+   let ano = periodo.0.get_year();
+   let (mes, dia) = (hoje.get_month(), hoje.get_date());
+   let novo = DateTuple::new(ano,mes, dia).unwrap();
+   return (novo, periodo);
+}
+/* verifica se uma determinada data está dentre
+ * o 'intervalo de datas' dado. Ignorando o ano,
+ * olhando apenas para o dia e mês. */
+fn esta_dentro(data: DateTuple, periodo: IntervaloData) -> bool {
+   let (data, periodo) = corrige_dt(data, periodo);
+   data >= periodo.0 && data <=periodo.1
+}
+/* verifica se, à partir da data dada(obviamente
+ * seria hoje), está no período de algum feriado.
+ * A array com feriádos também tem que ser cedido.
+ */
+fn e_periodo_de_ferias(data: DateTuple, feriados: DEs) -> bool {
+   assert!(feriados.is_some());
+   match feriados {
+      Some(mut array) => {
+         for tupla in array.drain(..) {
+            let intervalo = (tupla.1, tupla.2);
+            if esta_dentro(data.clone(), intervalo) {
+               //println!("está no feriado '{}' em {}", tupla.0, data);
+               return true;
+            }
+         }
+         /* se chegar até aqui, então não está em
+          * nenhum feriádo específico, ou perto
+          * dele. */
+         false
+      } None => false
+   }
+}
+
+use std::collections::BTreeSet;
+use std::fs::read_to_string;
+use super::{parte_ii, RAIZ, percentual, avalia_booleano};
+use std::path::{PathBuf, Path};
+/* Faz uma seleção levando transições de 
+ * datas especiais em consideração na seleção.
+ * Usa a função acima em consideração na 
+ * seleção randômica.  */
+#[allow(non_snake_case)]
+pub fn parteIII(hoje:DateTuple) -> PathBuf {
+   /* extraindo feriados do arquivo de configuração. */
+   let caminho = Path::new("./src/transicao/datas_especiais.conf");
+   let conteudo = read_to_string(caminho).unwrap();
+   let feriados = match coleta_datas_especiais(conteudo) {
+      Some(array) => array,
+      None => 
+         { panic!("sem feriados no arquivo de configuração."); }
+   };
+   // obtem uma transição antes.
+   let transicao = parte_ii();
+   // adicionando raíz ...
+   let mut caminho:PathBuf = PathBuf::new();
+   caminho.push(RAIZ);
+   /* tanto se foi confirmado para algum feriado, 
+    * quanto para um possível 'periódo' que foi
+    * capturado no bloco. */
+   let mut valor_logico = false;
+   let mut copia_intervalo: Option<IntervaloData> = None;
+   /* se estiver em um período configurado, então 
+    * um caminho "pode" ser desparado, não é garantido
+    * já que é algo probabilístico baseado no 
+    * restante do período. */
+   if e_periodo_de_ferias(hoje.clone(), Some(feriados.clone())) { 
+      // descobrindo que feriado é...
+      for t in feriados.iter() {
+         let (nome, i) = (t.0.clone(), (t.1.clone(), t.2.clone()));
+         /* mesmo que esteja no período, não é garantia 
+         * absoluta que será lançado, só quando aproxima-se 
+         * muito da data ofícial, ou seu término. */
+         //if esta_dentro(hoje.clone(), i) {
+         valor_logico = esta_dentro(hoje.clone(), i.clone()) ;
+         if valor_logico {
+            // registrando último período...
+            copia_intervalo = Some(i);
+            // cria caminho.
+            match nome.strip_suffix(".xml") {
+               Some(resto) => 
+                  { caminho.push(resto); }
+               None =>
+                  { panic!("[ERRO]não possui a extensão."); }
+            };
+            caminho.push(nome);
+            // abandona o loop no primeiro que achar.
+            break;
+         }
+      }
+      /* é permitido retornar o caminho criado? */
+      if let Some(i) = copia_intervalo {
+         // correção do ano.
+         let (hoje, i) = corrige_dt(hoje, i);
+         if let Some(p) = percentual(hoje, i) {
+            if avalia_booleano(p, valor_logico)
+               { return caminho; }
+         }
+      }
+   }
+   /* se chegar até aqui, então quer dizer que
+    * nenhum 'feriado' configurado foi acionado,
+    * ou, ainda não atingiu sua probabilidade 
+    * contínua de seleção. Foi tirado da cláusula
+    * 'else', pois o bloco do 'if' acionado, não
+    * garante um retorno construído inteiramente lá. */
+   let mut nova = transicao;
+   let mut nome: &str = {
+      nova.as_path()
+      .file_name()
+      .unwrap()
+      .to_str()
+      .unwrap()
+   };
+   let exclusao = BTreeSet::<String>::from_iter(
+      feriados.iter()
+      .map(|t| t.0.to_string())
+   );
+   /* faz uma nova seleção até ela ser
+    * inédita, tirando os feriados. */
+   while exclusao.contains(nome) { 
+      nova = parte_ii();
+      nome = {
+         nova.as_path()
+         .file_name()
+         .unwrap()
+         .to_str()
+         .unwrap()
+      };
+   }
+   return nova; 
 }
 
 
@@ -326,5 +469,47 @@ mod tests {
       for ld in coleta_datas_especiais(conteudo).unwrap() {
          println!("{:?}", ld);
       }
+   }
+
+   #[test]
+   fn anoNormal_EPF() {
+      let entrada = "
+               [Datas Especiais]
+         4thJuly: 20/06 à 04/07
+         independência:  27/08 à 07/09
+         festas-juninas: 11/05  à  23/05
+         black-friday : 20/11 à 30/11
+         dia-dos-pais: 13/06 à 15/06
+      ".to_string();
+      let mut inicio = DateTuple::new(1904, 3, 1).unwrap();
+      let feriados = coleta_datas_especiais(entrada);
+      assert_eq!(feriados.as_ref().unwrap().len(), 5);
+      let mut confirmacoes = 0;
+      for _ in 1..330 {
+         // obtendo nova transição.
+         if e_periodo_de_ferias(inicio.clone(), feriados.clone())
+            { confirmacoes += 1; }
+         // avançando dia ...
+         inicio = inicio.next_date();
+      }
+      assert_eq!(confirmacoes, 10+4+13+12+15);
+   }
+
+   #[test]
+   fn selecaoBaseadoEmDatasComemorativas() {
+      let mut inicio = DateTuple::new(1983, 3, 1).unwrap();
+      for _ in 1..330 {
+         // obtendo nova transição.
+         let nt = parteIII(inicio.clone());
+         println!(
+            "data: {}\nseleção: {:#?}\n",
+            inicio.to_readable_string(),
+            nt.file_name().unwrap()
+         );
+         // avançando dia ...
+         inicio = inicio.next_date();
+      }
+      // conseguir atingir o que queria?
+      assert!(true);
    }
 }
