@@ -109,11 +109,11 @@ fn parte_ii() -> PathBuf {
    return todos[numero_sorteado as usize].clone();
 }
 
+type Periodo = (DateTuple, DateTuple);
+type Conclusao = Option<f32>;
 /* computa o percentual quão decorreu 
  * até o momento no período do feriado.
  */
-type Periodo = (DateTuple, DateTuple);
-type Conclusao = Option<f32>;
 fn percentual(hoje: DateTuple, periodo: Periodo) -> Conclusao {
    // não se pode computar ainda ...
    // depois do período.

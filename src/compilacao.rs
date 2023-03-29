@@ -112,7 +112,7 @@ mod tests {
       let cII = dbg!(env::current_dir().unwrap());
       assert_eq!(c.clone(), cII.clone());
       let cIII = Path::new("/etc").to_path_buf();
-      env::set_current_dir(dbg!(cIII.clone()));
+      env::set_current_dir(dbg!(cIII.clone())).unwrap();
       assert_eq!(cIII, env::current_dir().unwrap());
       assert_eq!(c, cII);
    }
