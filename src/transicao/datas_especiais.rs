@@ -42,8 +42,11 @@
  */
 
 // biblioteca padrão:
-use std::collections::{HashMap};
+use std::collections::{BTreeSet, HashMap};
 use std::str::FromStr;
+use std::fs::read_to_string;
+use super::{parte_ii, RAIZ, percentual, avalia_booleano};
+use std::path::{PathBuf, Path};
 // biblioteca externa:
 use date_time::date_tuple::DateTuple;
 
@@ -58,6 +61,8 @@ type DEs = Option<Vec<LinhaData>>;
  * o último, ou a data de feriádo na maioria dos
  * casos aqui. */
 type IntervaloData = (DateTuple, DateTuple);
+// arquivo de configuração.
+const ARQUIVO_DE: &str = "./src/transicao/datas_especiais.conf";
 
 
 /* separa um cabeçalho, e as linhas ligadas à ele,
@@ -167,20 +172,25 @@ fn coleta_datas_especiais(conteudo: String) -> DEs  {
    return Some(lista_des);
 }
 
+// melhorar a legibilidade.
+type ID = IntervaloData;
 /* faz uma correção no 'DateTuple', em especificamente
  * o ano, para propósitos nos cálculos da codificação. */
-fn corrige_dt(hoje: DateTuple, periodo: IntervaloData) 
-  -> (DateTuple, IntervaloData) 
-{
+fn corrige_dt(hoje: DateTuple, periodo: ID) -> (DateTuple, ID) {
    let ano = periodo.0.get_year();
    let (mes, dia) = (hoje.get_month(), hoje.get_date());
-   let novo = DateTuple::new(ano,mes, dia).unwrap();
+   let novo = match DateTuple::new(ano,mes, dia) {
+      Ok(data) => data,
+      Err(_) => 
+         // cuidando dos anos bissextos.
+         { DateTuple::new(ano, mes, dia-1).unwrap() }
+   };
    return (novo, periodo);
 }
 /* verifica se uma determinada data está dentre
  * o 'intervalo de datas' dado. Ignorando o ano,
  * olhando apenas para o dia e mês. */
-fn esta_dentro(data: DateTuple, periodo: IntervaloData) -> bool {
+fn esta_dentro(data: DateTuple, periodo: ID) -> bool {
    let (data, periodo) = corrige_dt(data, periodo);
    data >= periodo.0 && data <=periodo.1
 }
@@ -189,7 +199,6 @@ fn esta_dentro(data: DateTuple, periodo: IntervaloData) -> bool {
  * A array com feriádos também tem que ser cedido.
  */
 fn e_periodo_de_ferias(data: DateTuple, feriados: DEs) -> bool {
-   assert!(feriados.is_some());
    match feriados {
       Some(mut array) => {
          for tupla in array.drain(..) {
@@ -207,10 +216,6 @@ fn e_periodo_de_ferias(data: DateTuple, feriados: DEs) -> bool {
    }
 }
 
-use std::collections::BTreeSet;
-use std::fs::read_to_string;
-use super::{parte_ii, RAIZ, percentual, avalia_booleano};
-use std::path::{PathBuf, Path};
 /* Faz uma seleção levando transições de 
  * datas especiais em consideração na seleção.
  * Usa a função acima em consideração na 
@@ -218,7 +223,7 @@ use std::path::{PathBuf, Path};
 #[allow(non_snake_case)]
 pub fn parteIII(hoje:DateTuple) -> PathBuf {
    /* extraindo feriados do arquivo de configuração. */
-   let caminho = Path::new("./src/transicao/datas_especiais.conf");
+   let caminho = Path::new(ARQUIVO_DE);
    let conteudo = read_to_string(caminho).unwrap();
    let feriados = match coleta_datas_especiais(conteudo) {
       Some(array) => array,
@@ -230,11 +235,12 @@ pub fn parteIII(hoje:DateTuple) -> PathBuf {
    // adicionando raíz ...
    let mut caminho:PathBuf = PathBuf::new();
    caminho.push(RAIZ);
+
    /* tanto se foi confirmado para algum feriado, 
     * quanto para um possível 'periódo' que foi
     * capturado no bloco. */
    let mut valor_logico = false;
-   let mut copia_intervalo: Option<IntervaloData> = None;
+   let mut periodo: Option<IntervaloData> = None;
    /* se estiver em um período configurado, então 
     * um caminho "pode" ser desparado, não é garantido
     * já que é algo probabilístico baseado no 
@@ -243,14 +249,16 @@ pub fn parteIII(hoje:DateTuple) -> PathBuf {
       // descobrindo que feriado é...
       for t in feriados.iter() {
          let (nome, i) = (t.0.clone(), (t.1.clone(), t.2.clone()));
-         /* mesmo que esteja no período, não é garantia 
-         * absoluta que será lançado, só quando aproxima-se 
-         * muito da data ofícial, ou seu término. */
-         //if esta_dentro(hoje.clone(), i) {
+
+         /* capturando valor, já que será também usado
+          * fora do 'loop', para vê se tal data está 
+          * dentro do período de feriado. */
          valor_logico = esta_dentro(hoje.clone(), i.clone()) ;
+         /* se estiver dentro, então monta o caminho, também
+          * registra o atual 'período' que foi validado. */
          if valor_logico {
             // registrando último período...
-            copia_intervalo = Some(i);
+            periodo = Some(i);
             // cria caminho.
             match nome.strip_suffix(".xml") {
                Some(resto) => 
@@ -259,12 +267,17 @@ pub fn parteIII(hoje:DateTuple) -> PathBuf {
                   { panic!("[ERRO]não possui a extensão."); }
             };
             caminho.push(nome);
-            // abandona o loop no primeiro que achar.
+            /* abandona o loop no primeiro que achar. Isso,
+             * pode não parecer ter muito implicancia ao todo,
+             * porém diz algo; se o laço é quebrado, então 
+             * com configurações que sobrepõem-se com seus
+             * períodos, o primeiro sempre será acionado. */
             break;
          }
       }
+
       /* é permitido retornar o caminho criado? */
-      if let Some(i) = copia_intervalo {
+      if let Some(i) = periodo {
          // correção do ano.
          let (hoje, i) = corrige_dt(hoje, i);
          if let Some(p) = percentual(hoje, i) {
@@ -287,6 +300,7 @@ pub fn parteIII(hoje:DateTuple) -> PathBuf {
       .to_str()
       .unwrap()
    };
+
    let exclusao = BTreeSet::<String>::from_iter(
       feriados.iter()
       .map(|t| t.0.to_string())
@@ -303,6 +317,7 @@ pub fn parteIII(hoje:DateTuple) -> PathBuf {
          .unwrap()
       };
    }
+
    return nova; 
 }
 
@@ -311,7 +326,6 @@ pub fn parteIII(hoje:DateTuple) -> PathBuf {
 #[allow(non_snake_case)]
 mod tests {
    use super::*;
-   use std::fs::read_to_string;
 
    #[test]
    fn saida_sastifatoria() {
@@ -511,5 +525,40 @@ mod tests {
       }
       // conseguir atingir o que queria?
       assert!(true);
+   }
+
+   use crate::temporizador::Cronometro;
+   use crate::transicao::parte_iii;
+   #[test]
+   fn comparandoFuncoes_PARTEIII() {
+      let mut inicio = DateTuple::new(1903, 1, 10).unwrap();
+      let mut c = Cronometro::novo();
+      for _ in 1..500 {
+         // obtendo nova transição.
+         let _nt = parteIII(inicio.clone());
+         // avançando dia ...
+         inicio = inicio.next_date();
+      }
+      let t = c.marca();
+      //c.reseta();
+      for _ in 1..500 {
+         // obtendo nova transição.
+         let _nt = parte_iii(inicio.clone());
+         // avançando dia ...
+         inicio = inicio.next_date();
+      }
+      // variação do último marco(exclui necessidade de reset).
+      let T = c.delta();
+      println!("novo:{:?}\nantigo:{:#?}", t, T);
+      /* a intenção inicial não era o desempenho,
+       * entretanto, se veio de bônus, então é 
+       * só lucro. */
+      assert!(t < T);
+      println!(
+         "{:0.2}% do tempo antigo.
+         \r{:0.1} vezes mais rápido.",
+         (t.as_nanos() as f32 / T.as_nanos() as f32) * 100.0,
+         (T.as_nanos() as f32 / t.as_nanos() as f32)
+      );
    }
 }
