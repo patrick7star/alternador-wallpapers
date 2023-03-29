@@ -17,3 +17,7 @@ animais.xml
 desenhos_animados.xml
 computação.xml
 aves.xml
+math_wallpapers.xml
+wallpapers_de_estradas.xml
+cores.xml
+math_wallpapers.xml
