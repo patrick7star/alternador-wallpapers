@@ -21,3 +21,7 @@ math_wallpapers.xml
 wallpapers_de_estradas.xml
 cores.xml
 math_wallpapers.xml
+math_wallpapers.xml
+desenhos_animados.xml
+math_wallpapers.xml
+desenhos_animados.xml
