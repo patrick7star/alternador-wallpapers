@@ -62,7 +62,7 @@ type DEs = Option<Vec<LinhaData>>;
  * casos aqui. */
 type IntervaloData = (DateTuple, DateTuple);
 // arquivo de configuração.
-const ARQUIVO_DE: &str = "./src/transicao/datas_especiais.conf";
+pub const ARQUIVO_DE: &str = "./data/datas_especiais.conf";
 
 
 /* separa um cabeçalho, e as linhas ligadas à ele,
@@ -152,7 +152,7 @@ fn parse_linha(linha: String) -> LinhaData {
  * claro que se não houver tanto o cabeçalho,
  * quanto nada anexado à ele, simplesmente
  * "nada" será retornado. */
-fn coleta_datas_especiais(conteudo: String) -> DEs  {
+pub fn coleta_datas_especiais(conteudo: String) -> DEs  {
    let mapa = todas_configuracoes(conteudo);
    let chave = String::from("Datas Especiais");
    
@@ -198,7 +198,7 @@ fn esta_dentro(data: DateTuple, periodo: ID) -> bool {
  * seria hoje), está no período de algum feriado.
  * A array com feriádos também tem que ser cedido.
  */
-fn e_periodo_de_ferias(data: DateTuple, feriados: DEs) -> bool {
+pub fn e_periodo_de_ferias(data: DateTuple, feriados: DEs) -> bool {
    match feriados {
       Some(mut array) => {
          for tupla in array.drain(..) {
