@@ -25,3 +25,16 @@ math_wallpapers.xml
 desenhos_animados.xml
 math_wallpapers.xml
 desenhos_animados.xml
+math_wallpapers.xml
+animais.xml
+desenhos_animados.xml
+aves.xml
+math_wallpapers.xml
+desenhos_animados.xml
+bandeiras.xml
+wallpapers_de_estradas.xml
+background-1.xml
+computação.xml
+sombrio_wallpapers.xml
+bandeiras.xml
+wallpapers_de_estradas.xml
