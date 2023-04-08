@@ -21,6 +21,8 @@ pub use date_time::date_tuple::DateTuple;
 // contiação do módulo ...
 mod embaralhamento;
 mod datas_especiais;
+mod resolve_repeticoes;
+
 /* também re-exporta função para não ter
  * que importar aqui também. */
 use embaralhamento::{sortear, embaralha};
@@ -162,6 +164,7 @@ fn avalia_booleano(percentual: f32, valor: bool) -> bool {
  * Usa a função acima em consideração na 
  * seleção randômica.
 */
+#[allow(dead_code)]
 fn parte_iii(hoje:DateTuple) -> PathBuf {
    // obtem uma transição antes.
    let transicao = parte_ii();
@@ -273,6 +276,7 @@ fn parte_iii(hoje:DateTuple) -> PathBuf {
 /* tentanto reduzir repetições seguidas na 
  * seleção aleatória.
  */
+#[allow(dead_code)]
 fn parte_iv(hoje:DateTuple) -> PathBuf {
    let mut nova_transicao = parte_iii(hoje.clone());
    // o que foi selecionado anterior.
@@ -309,11 +313,11 @@ fn parte_iv(hoje:DateTuple) -> PathBuf {
  * transição que foi escolhida.
  */
 fn parte_v(caminho:PathBuf) -> PathBuf {
-   let caminho_i:&Path = caminho.as_path();
-   let nome:&OsStr =  caminho_i.file_name().unwrap();
+   let caminho_i = caminho.as_path();
+   let nome = caminho_i.file_name().unwrap();
 
    // ambiente que está inserido.
-   let ambiente:&str = match env::var("XDG_CURRENT_DESKTOP") {
+   let ambiente = match env::var("XDG_CURRENT_DESKTOP") {
       Ok(a) => {
          if a == "ubuntu:GNOME"
             { "org.gnome.desktop.background" }
@@ -321,8 +325,7 @@ fn parte_v(caminho:PathBuf) -> PathBuf {
             { "org.mate.background" }
          else
             { panic!("não implementado para tal ambiente!"); }
-      },
-      Err(_) => 
+      } Err(_) => 
          { panic!("não implementado para tal ambiente!"); }
    };
 
@@ -373,7 +376,9 @@ pub fn alterna_transicao() {
       },
       Err(_) => String::from("nenhuma alteração anterior"),
    };
-   let nova_transicao = parte_v(parte_iv(data_de_hoje));
+   //let nova_transicao = parte_v(parte_iv(data_de_hoje));
+   // nova implementação.
+   let nova_transicao = parte_v(resolve_repeticoes::parteIV(data_de_hoje));
    // arquivo selecionado agora:
    let atual_tw: &str = {
       nova_transicao.as_path()
