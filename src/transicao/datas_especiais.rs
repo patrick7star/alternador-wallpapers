@@ -62,7 +62,12 @@ type DEs = Option<Vec<LinhaData>>;
  * casos aqui. */
 type IntervaloData = (DateTuple, DateTuple);
 // arquivo de configuração.
-pub const ARQUIVO_DE: &str = "./data/datas_especiais.conf";
+//pub const ARQUIVO_DE: &str = "./data/datas_especiais.conf";
+pub const ARQUIVO_DE:&str = concat!( 
+   env!("RUST_CODES"),
+   "/alternador-wallpapers/data",
+   "/datas_especiais.conf"
+);
 
 
 /* separa um cabeçalho, e as linhas ligadas à ele,
