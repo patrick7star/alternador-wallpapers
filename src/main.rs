@@ -26,6 +26,11 @@ mod atualizacoes;
 mod comparacao;
 mod temporizador;
 mod compilacao;
+#[allow(unused)]
+mod notificacoes;
+#[allow(unused)]
+mod configuracao;
+
 
 use temporizador::*;
 

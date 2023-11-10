@@ -27,17 +27,14 @@ mod resolve_repeticoes;
  * que importar aqui também. */
 use embaralhamento::{sortear, embaralha};
 
-/* acha todos XML que contém uma transição 
- * programada de determinados wallpapers, 
- * geralmente localizados no mesmo diretório 
- * de tal. */
+use super::configuracao::{raiz_wallpapers, wallpapers_externos};
+/* acha todos XML que contém uma transição programada de determinados 
+ * wallpapers, geralmente localizados no mesmo diretório de tal. */
 pub fn parte_i() -> Vec<PathBuf> {
    // todos arquivos e subdiretórios da RAIZ dada.
-   let sua_localizacao = {
-      Path::new(RAIZ)
-      .read_dir()
-      .unwrap()
-   };
+   let sua_localizacao = raiz_wallpapers().read_dir().unwrap();
+
+   /*
    // lista com todos arquivos XML encontrados.
    let mut arquivos_xml:Vec<PathBuf> = Vec::new();
    // adicionando XML's do sistema.
@@ -53,30 +50,39 @@ pub fn parte_i() -> Vec<PathBuf> {
       // só adiciona se existir.
       if caminho.exists() 
          { arquivos_xml.push(caminho); }
-   }
+   }*/
 
-   // varrendo tal raíz.
+   /* pegando já "wallpapers externos" à raiz, porém filtrando apenas
+    * caminhos existentes. */
+   let mut arquivos_xml = {
+      wallpapers_externos().drain(..)
+      .filter(|path| path.exists())
+      .collect::<Vec<PathBuf>>()
+   };
+
+   // varrendo tal raíz, e colhendo arquivos XML's...
    for dir in sua_localizacao {
-      // obtendo velho.
       let entrada = dir.unwrap().path();
       let diretorio = entrada.as_path();
-      /* se for um diretório, entra nele e varre-o
-       * por um padrão, que é: verificar se há arquivos
-       * de imagens e um xml com o nome do diretório. */
+      /* se for um diretório, entra nele e varre-o por um padrão, que 
+       * é: verificar se há arquivos de imagens e um xml com o nome do 
+       * diretório. O algoritmo, por enquanto, só entra um subdiretório
+       * atrás de XML's, futuramente a busca será mais profunda. */
       if diretorio.is_dir() {
          // novo iterador de entradas do subdiretório.
-         let novas_dir:ReadDir = {
-            diretorio
-            .read_dir() 
-            .unwrap()
-         };
+         let novas_dir = diretorio.read_dir().unwrap();
+
          for subdir in novas_dir {
             let entrada = subdir.unwrap().path();
             let caminho_i = entrada.as_path();
-            let extensao = match caminho_i.extension() {
+            let extensao = {
+               caminho_i.extension()
+               .unwrap_or(OsStr::new("nada"))
+               /*
                Some(string) => string,
-               None => OsStr::new("nada"),
+               None => OsStr::new("nada"),*/
             };
+
             if extensao == OsStr::new("xml") {
                arquivos_xml.push(caminho_i.to_path_buf());
                break;
@@ -553,5 +559,4 @@ mod tests {
       assert!( t > Duration::from_secs(60));
       println!("valor={}", tempo(t.as_secs(), true));
    }
-
 }
