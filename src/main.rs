@@ -15,7 +15,6 @@ use utilitarios::legivel::tempo as tempo_l;
 // bibliotecas do Rust:
 use std::time::Duration;
 use std::thread::sleep;
-use std::process::Command;
 
 // próprios módulos:
 mod banco_de_dados;
@@ -24,7 +23,6 @@ mod atualizacoes;
 mod comparacao;
 mod temporizador;
 mod compilacao;
-#[allow(unused)]
 mod notificacoes;
 mod configuracao;
 mod constantes;
@@ -37,76 +35,6 @@ use transicao::{
 };
 use atualizacoes::atualiza_xmls;
 use constantes::*;
-
-
-// extensão para o objeto String.
-trait Extensao {
-   fn titulo(&self) -> String;
-}
- 
-impl Extensao for String {
-   /* faz uma string com um título, ou seja, faz cada palavra 
-    * "capitalizada". */
-   fn titulo(&self) -> String {
-      let mut nova_str = String::new();
-      for s in self.split(' ') {
-         let primeiro_char = s.get(0..1).unwrap();
-         nova_str += primeiro_char.to_uppercase().as_str();
-         nova_str += s.get(1..).unwrap();
-         nova_str.push(' ');
-      }
-      return nova_str;
-   }
-}
-
-fn atual_transicao() -> String {
-   match banco_de_dados::le_escolha() {
-      Ok(caminho_contido) => {
-         let string = {
-            caminho_contido
-            .as_path()
-            .file_name()
-            .unwrap()
-            .to_os_string()
-            .into_string()
-            .unwrap_or("ALGO FOI ERRADO".to_string())
-         };
-         /* retirando o traço por espaço
-          * e colocando tudo maiúscula. */
-         string
-         .replace("_", " ")
-         .replace(".xml", "")
-         .titulo()
-         .trim_end()
-         .to_string()
-      } Err(_) => 
-         { panic!("erro ao extraír caminho!"); }
-   }
-}
-
-/* faz uma notificação da atual transição aplicada ao sistema. */
-fn popup_notificacao() {
-   /* obtêm o nome da atual transição, e trabalha um pouquinho nela. */
-   let nome_transicao = atual_transicao();
-   // notificação sobre transição.
-   let mensagem = format!(
-      "a nova transição de imagem \"{}\" foi colocada",
-      nome_transicao
-   );
-   let argumentos:[&str; 4] = [
-      "--expire-time=25000",
-      "--icon=object-rotate-left",
-      "--app-name=AlternaWallpaper",
-      mensagem.as_str()
-   ];
-
-   // executando comando ...
-   Command::new("notify-send")
-   .args(argumentos.into_iter())
-   .spawn().unwrap()
-   .wait().unwrap();
-   println!("notificação foi \"plotada\" com sucesso.");
-}
 
 fn pausa_aleatoria() {
    /* pausa de alguns minutos para se curtir a transição anterior. 
@@ -154,8 +82,8 @@ fn main() {
       { println!("pausa instantânea!"); }
 
    loop {
-      /* se tiver "atigindo" tal tempo, então trocar a 
-       * transição-de-wallpaper atual. */
+      /* se tiver "atigindo" tal tempo, então trocar a transição de 
+       wallpaper atual. */
       let aciona_uma_nova_transicao = {
          //cronometro.elapsed() > tempo_final 
          cronometro > tempo_final
@@ -176,12 +104,14 @@ fn main() {
             Duration::from_secs(60)
          };
          // mostra a notificação da atual ação.
-         popup_notificacao();
+         // popup_notificacao();
+         notificacoes::popup_notificacao_de_transicao();
       } else if !execucao_inicial {
          // faz uma execução inicial
          alterna_transicao();
          // mostra a notificação da atual ação.
-         popup_notificacao();
+         // popup_notificacao();
+         notificacoes::popup_notificacao_de_transicao();
          // executada uma vez ...
          execucao_inicial = true;
       } else {
