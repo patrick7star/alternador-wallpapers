@@ -9,15 +9,9 @@
 */
 
 use serde_json::{self, Value};
-use std::io::{Read};
 use std::fs::{read_to_string};
 use std::path::{Path, PathBuf};
-
-const ARQUIVO_CONF: &str = concat!(
-   env!("RUST_CODES"),
-   "/alternador-wallpapers/data/",
-   "configuracao.json"
-);
+use crate::constantes::ARQUIVO_CONF;
 
 /* carrega o único arquivo de configuração JSON com todos valores 
  * necessários para execução do programa.
@@ -69,8 +63,8 @@ pub fn raiz_wallpapers() -> PathBuf {
    }
 }
 
-/// caminhos externos à raiz, provavelmente espalhado por todo sistema
-/// de arquivos do sistema.
+/** caminhos externos à raiz, provavelmente espalhado por todo sistema
+ de arquivos do sistema. */
 pub fn wallpapers_externos() -> Vec<PathBuf> {
    let mut caminhos = Vec::<PathBuf>::new();
    let config = carrega_configuracoes();
@@ -94,6 +88,55 @@ pub fn wallpapers_externos() -> Vec<PathBuf> {
    caminhos
 }
 
+// tipos tratados abaixo:
+type LinhaData = (String, DateTuple, DateTuple);
+type DEs = Option<Vec<(String, DateTuple, DateTuple)>>;
+
+use date_time::date_tuple::DateTuple;
+use std::str::FromStr;
+
+
+fn extrai_data(string: &str) -> DateTuple {
+   let partes = string.split_once("/").unwrap();
+   let mes = u8::from_str(partes.1.trim()).unwrap();
+   let dia = u8::from_str(partes.0.trim()).unwrap();
+   let atual = DateTuple::today();
+   DateTuple::new(atual.get_year(), mes, dia).unwrap()
+}
+
+pub fn coleta_datas_especiais_ii () -> DEs  {
+   /* Aprimoramento do colhimento das configurações, usa JSON, com todo 
+    * ferramental de "parsing" já pronto, e muito mais veloz, para 
+    * colher tais tipos. */
+   let mut lista: Vec<LinhaData> = vec![];
+   let chave: &'static str = "datas-especiais";
+
+   if let Value::Object (todos_dados) = carrega_configuracoes() {
+      if let Value::Object (dicionario) = &todos_dados[chave] { 
+         for (key, value) in dicionario.iter() { 
+            if let Value::Array(periodos) = value {
+               let inicio = extrai_data ( 
+                  match &periodos[0] {
+                     Value::String (data) => data.as_str(),
+                     _ => todo! ()
+                  }
+               );
+               let final_ = extrai_data (
+                  match &periodos[1] {
+                     Value::String (data) => data.as_str(),
+                     _ => todo! ()
+                  }
+               );
+               let mut nome = key.to_string();
+               nome.push_str(".xml");
+               lista.push((nome, inicio, final_));
+            }
+         }
+      }
+   }
+   if lista.is_empty() { None }
+   else { Some (lista) }
+}
 
 #[cfg(test)]
 mod tests {
@@ -144,5 +187,11 @@ mod tests {
          "caminhos dos wallpapers externos:\n{:#?}",
          wallpapers_externos()
       );
+   }
+
+   #[test]
+   fn extracao_das_des() {
+      for tupla in coleta_datas_especiais_ii().into_iter()
+         { println! ("{tupla:#?}"); }
    }
 }

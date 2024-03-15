@@ -3,16 +3,13 @@
 use std::str::FromStr;
 use std::time::Duration;
 use std::env;
-use std::fs::ReadDir;
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 use std::ffi::{OsString, OsStr};
 use std::process::{Output, Command};
 
 // própria lib.
-use super::{
-   RAIZ, PYTHON,
-   banco_de_dados::{grava_escolha, le_escolha}
-};
+use super:: banco_de_dados::{grava_escolha, le_escolha};
+use crate::constantes::{RAIZ, PYTHON};
 
 // bibliotecas externas:
 extern crate date_time;
@@ -361,9 +358,8 @@ fn parte_v(caminho:PathBuf) -> PathBuf {
    return caminho;
 } 
 
-/** executa o comando de troca de wallpapers
- acionando uma transição-de-wallpapers já 
- pré-configurada. */
+/** executa o comando de troca de wallpapers acionando uma 
+  transição-de-wallpapers já pré-configurada. */
 pub fn alterna_transicao() {
    /* obtendo, de maneira aleatória, uma 
     * nova transição-de-wallpapers, baseado

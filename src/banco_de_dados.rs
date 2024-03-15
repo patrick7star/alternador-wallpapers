@@ -1,27 +1,28 @@
 
 /** 
- BD para gravar em disco todas alterações
- já realizadas, como também para ajudar 
- na reparações de redundâncias feitas na
- seleção aleatória.
+ BD para gravar em disco todas alterações já realizadas, como também para 
+ ajudar na reparações de redundâncias feitas na seleção aleatória.
 */
-
 
 // biblioteca padrão do Rust:
 use std::fs::{OpenOptions, read_to_string, File};
 use std::io::{Write};
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 // usando própria biblioteca:
-use super::BD1;
-
+// use super::BD1;
+use crate::compilacao::computa_caminho;
+use crate::constantes::{SELECOES_FEITAS, Str};
 
 pub fn grava_escolha(caminho:PathBuf) -> bool {
+   let path_str = "data/ultima_escolha.txt";
+   let caminho_bd = computa_caminho(path_str);
    // abrindo bd ...
    let mut arquivo:File = {
       OpenOptions::new()
       .create(true)
       .write(true)
-      .open(BD1)
+      // .open(BD1)
+      .open(caminho_bd)
       .unwrap()
    };
    // todas modificações feitas.
@@ -53,12 +54,14 @@ pub fn grava_escolha(caminho:PathBuf) -> bool {
    return true;
 }
 
-pub fn le_escolha() -> Result<PathBuf, &'static str> {
+pub fn le_escolha() -> Result<PathBuf, Str> {
    // lendo todo arquivo, e colocando num interador
    // baseado nas quebra-de-linhas.
    let conteudo:String = {
-      let pth = Path::new(BD1);
-      match read_to_string(pth) {
+      let path_str = "data/ultima_escolha.txt";
+      let caminho_bd = computa_caminho(path_str);
+      // let pth = Path::new(BD1);
+      match read_to_string(caminho_bd) {
          Ok(resultado) => resultado,
          Err(_) => { return Err("arquivo foi apagado!"); }
       }
@@ -74,25 +77,24 @@ pub fn le_escolha() -> Result<PathBuf, &'static str> {
    return Ok(caminho);
 }
 
-// arquivo onde serão gravados.
-const SELECOES_FEITAS:&str = concat!(
-   env!("RUST_CODES"),
-   "/alternador-wallpapers/data",
-   "/historico_de_escolhas_feitas.txt"
-);
-
-/* grava seleção feito num banco de dados
- * próprio, para propósitos de pesquisas
- * posteriores. */
+/* grava seleção feito num banco de dados próprio, para propósitos de 
+ * pesquisas posteriores. */
 fn registra_no_historico(nome: &str) {
+   if cfg! (debug_assertions)
+      { println!("caminho(SELEÇÔES FEITAS): {}", SELECOES_FEITAS); }
+
+   let path_str: &str = "data/historico_de_escolhas_feitas.txt";
+   let caminho_historico = computa_caminho(path_str);
    // abrindo bd ...
    let mut arquivo: File = {
       OpenOptions::new()
       .create(true)
       .append(true)
-      .open(SELECOES_FEITAS)
+      // .open(SELECOES_FEITAS)
+      .open(caminho_historico)
       .unwrap()
    };
+
    arquivo.write(nome.as_bytes()).unwrap();
    /* colocando quebra de linha, mirando 
     * próxima concatenação. */
@@ -104,7 +106,8 @@ mod tests {
    use super::*;
    use crate::transicao::parte_i;
    use std::collections::HashSet;
-   use std::fs::remove_file;
+   use std::fs::{remove_file, read_to_string};
+   use std::path::Path;
 
    #[test]
    fn testando_escrita() {
