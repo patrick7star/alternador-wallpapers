@@ -1,3 +1,6 @@
-/home/wednesday/Pictures/desenhos_animados
+/home/wednesday/Pictures/cores
+cores.xml
+s
 desenhos_animados.xml
-radas.xml
+l
+das.xml
