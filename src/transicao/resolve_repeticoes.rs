@@ -6,37 +6,34 @@
  */
 
 // próprio módulo:
-use super::datas_especiais::{
-   parteIII, coleta_datas_especiais,
-   e_periodo_de_ferias, ARQUIVO_DE,
-};
+use super::datas_especiais::{ parteIII, e_periodo_de_ferias };
 // próprio biblioteca:
 use crate::banco_de_dados::{grava_escolha, le_escolha};
+// use crate::compilacao::computa_caminho;
 // biblioteca padrão do Rust:
-use std::fs::read_to_string;
-use std::path::{Path, PathBuf};
+// use std::fs::read_to_string;
+use std::path::{PathBuf};
 // biblioteca externa:
 use date_time::date_tuple::DateTuple;
 
 
-/* tentanto reduzir repetições seguidas na 
- * seleção aleatória. Aqui elas são escritas
- * com a numeração romana maiúsculas, simplesmente
- * para diferenciar-se do original que ele está
- * substituindo, já que este, não será deixado(
- * descontinuado) de uma vez só.
- */
+use crate::configuracao::coleta_datas_especiais_ii;
+/* tentanto reduzir repetições seguidas na seleção aleatória. Aqui elas 
+ * são escritas com a numeração romana maiúsculas, simplesmente para 
+ * diferenciar-se do original que ele está substituindo, já que este, não 
+ * será deixado( descontinuado) de uma vez só. */
 #[allow(non_snake_case)]
-#[allow(unused)]
 pub fn parteIV(hoje:DateTuple) -> PathBuf {
    /* extraindo feriados do arquivo de configuração. */
-   let caminho = Path::new(ARQUIVO_DE);
+   /*
+   let caminho = computa_caminho("data/datas_especiais.conf");
    let conteudo = read_to_string(caminho).unwrap();
    let feriados = match coleta_datas_especiais(conteudo) {
       Some(array) => array,
       None => 
          { panic!("sem feriados no arquivo de configuração."); }
-   };
+   }; */
+   let feriados = coleta_datas_especiais_ii().unwrap();
    let mut nova_transicao = parteIII(hoje.clone());
    // o que foi selecionado anterior.
    match le_escolha() {
@@ -71,6 +68,7 @@ mod tests {
    use std::env::{set_var, var};
    use std::ffi::OsStr;
    use std::str::FromStr;
+   use std::path::Path;
    /* clona arquivo, então renomea o original,
     * para que não sofra alteração caso ele seja
     * importante para outras coisas. Quando chamada
@@ -207,7 +205,7 @@ mod tests {
 
    use crate::transicao::parte_iv;
    #[test] 
-   #[ignore="precisa que tenha precisa configurações no arquivo"] 
+   #[ignore="precisa que tenha precisas configurações no arquivo"] 
    fn comparaSaidasDeCadaEmPeriodosEspeciais() {
       // poupando atuais arquivos de alterações.
       salva_e_restaura(vec![HISTORICO, ULTIMA_MOD]);

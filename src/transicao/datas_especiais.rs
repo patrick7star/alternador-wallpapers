@@ -44,9 +44,8 @@
 // biblioteca padrão:
 use std::collections::{BTreeSet, HashMap};
 use std::str::FromStr;
-use std::fs::read_to_string;
 use super::{parte_ii, RAIZ, percentual, avalia_booleano};
-use std::path::{PathBuf, Path};
+use std::path::{PathBuf};
 // biblioteca externa:
 use date_time::date_tuple::DateTuple;
 
@@ -61,14 +60,6 @@ type DEs = Option<Vec<LinhaData>>;
  * o último, ou a data de feriádo na maioria dos
  * casos aqui. */
 type IntervaloData = (DateTuple, DateTuple);
-// arquivo de configuração.
-//pub const ARQUIVO_DE: &str = "./data/datas_especiais.conf";
-pub const ARQUIVO_DE:&str = concat!( 
-   env!("RUST_CODES"),
-   "/alternador-wallpapers/data",
-   "/datas_especiais.conf"
-);
-
 
 /* separa um cabeçalho, e as linhas ligadas à ele,
  * por meio de um dicionário. */
@@ -157,6 +148,7 @@ fn parse_linha(linha: String) -> LinhaData {
  * claro que se não houver tanto o cabeçalho,
  * quanto nada anexado à ele, simplesmente
  * "nada" será retornado. */
+#[allow(dead_code)]
 pub fn coleta_datas_especiais(conteudo: String) -> DEs  {
    let mapa = todas_configuracoes(conteudo);
    let chave = String::from("Datas Especiais");
@@ -221,20 +213,23 @@ pub fn e_periodo_de_ferias(data: DateTuple, feriados: DEs) -> bool {
    }
 }
 
-/* Faz uma seleção levando transições de 
- * datas especiais em consideração na seleção.
- * Usa a função acima em consideração na 
- * seleção randômica.  */
+// use crate::compilacao::computa_caminho;
+use crate::configuracao::coleta_datas_especiais_ii;
+/* Faz uma seleção levando transições de datas especiais em consideração 
+ * na seleção. Usa a função acima em consideração na seleção randômica.  
+ */
 #[allow(non_snake_case)]
 pub fn parteIII(hoje:DateTuple) -> PathBuf {
    /* extraindo feriados do arquivo de configuração. */
-   let caminho = Path::new(ARQUIVO_DE);
+   /*
+   let caminho = computa_caminho("data/datas_especiais.conf");
    let conteudo = read_to_string(caminho).unwrap();
    let feriados = match coleta_datas_especiais(conteudo) {
       Some(array) => array,
       None => 
          { panic!("sem feriados no arquivo de configuração."); }
-   };
+   }; */
+   let feriados = coleta_datas_especiais_ii().unwrap();
    // obtem uma transição antes.
    let transicao = parte_ii();
    // adicionando raíz ...
@@ -291,39 +286,32 @@ pub fn parteIII(hoje:DateTuple) -> PathBuf {
          }
       }
    }
-   /* se chegar até aqui, então quer dizer que
-    * nenhum 'feriado' configurado foi acionado,
-    * ou, ainda não atingiu sua probabilidade 
-    * contínua de seleção. Foi tirado da cláusula
-    * 'else', pois o bloco do 'if' acionado, não
-    * garante um retorno construído inteiramente lá. */
-   let mut nova = transicao;
+   /* se chegar até aqui, então quer dizer que nenhum 'feriado' 
+    * configurado foi acionado, ou, ainda não atingiu sua probabilidade 
+    * contínua de seleção. Foi tirado da cláusula 'else', pois o bloco do 
+    * 'if' acionado, não garante um retorno construído inteiramente lá. */
+   let mut nova_transicao = transicao;
    let mut nome: &str = {
-      nova.as_path()
-      .file_name()
-      .unwrap()
-      .to_str()
-      .unwrap()
+      nova_transicao
+      .as_path().file_name().unwrap()
+      .to_str().unwrap()
    };
 
    let exclusao = BTreeSet::<String>::from_iter(
       feriados.iter()
       .map(|t| t.0.to_string())
    );
-   /* faz uma nova seleção até ela ser
-    * inédita, tirando os feriados. */
+   /* faz uma nova seleção até ela ser inédita, tirando os feriados. */
    while exclusao.contains(nome) { 
-      nova = parte_ii();
+      nova_transicao = parte_ii();
       nome = {
-         nova.as_path()
-         .file_name()
-         .unwrap()
-         .to_str()
-         .unwrap()
+         nova_transicao.as_path()
+         .file_name().unwrap()
+         .to_str().unwrap()
       };
    }
-
-   return nova; 
+   // fechado o loop, retorna última transição selecionada.
+   nova_transicao
 }
 
 
@@ -331,6 +319,7 @@ pub fn parteIII(hoje:DateTuple) -> PathBuf {
 #[allow(non_snake_case)]
 mod tests {
    use super::*;
+   use std::fs::{read_to_string};
 
    #[test]
    fn saida_sastifatoria() {
@@ -555,9 +544,8 @@ mod tests {
       // variação do último marco(exclui necessidade de reset).
       let T = c.delta();
       println!("novo:{:?}\nantigo:{:#?}", t, T);
-      /* a intenção inicial não era o desempenho,
-       * entretanto, se veio de bônus, então é 
-       * só lucro. */
+      /* a intenção inicial não era o desempenho, entretanto, se veio 
+       * de bônus, então é só lucro. */
       assert!(t < T);
       println!(
          "{:0.2}% do tempo antigo.
