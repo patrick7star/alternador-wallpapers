@@ -1,6 +1,6 @@
 [package]
 name = "alternador_wallpapers"
-version = "0.5.5"
+version = "0.5.6"
 edition = "2021"
 
 [dependencies]
@@ -9,6 +9,4 @@ utilitarios = { path="extern_lib/utilitarios/", version="1.0.1" }
 serde_json = "1.0.91"
 
 [dev-dependencies]
-#fastrand = "1.*.*"
 fastrand = "1.8.0"
-#serde_json = "1.0.91"
