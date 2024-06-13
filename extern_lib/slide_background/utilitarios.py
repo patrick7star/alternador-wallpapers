@@ -6,6 +6,7 @@ from random import shuffle, randint
 # meus módulos:
 from variaveis import * 
 
+__all__ = ["ConfiguracaoXML", "gera_configuracao_xml"]
 
 # FUNÇÕES:
 def pegando_nome_do_diretorio(caminho):
@@ -178,12 +179,11 @@ def gera_configuracao_xml(caminho):
       print('tal caminho apontado "%s" não existe!' % caminho)
 ...
 
-# carrega XML ...
 class ConfiguracaoXML:
    """
-   classe para armazenar configurações geradas.
+   Classe para armazenar configurações geradas.
 
-   legenda de auxílio para os parâmetros:
+   Legenda de auxílio para os parâmetros:
        dh - Data/Horário; um objeto time_struct.
        ta - Tempo de Apresentação de uma imagem.
        tt - Tempo de Transição entre imagens.

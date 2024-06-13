@@ -1,7 +1,6 @@
 
 """
-Visualizando todos arquivos XML's da pasta
-"Imagens"
+Visualizando todos arquivos XML's da pasta 'Imagens'.
 """
 
 import os, os.path, glob
@@ -66,27 +65,65 @@ def total_de_imagens(arquivo_xml):
    return instancia.qtd
 ...
 
-if __name__ == "__main__":
-   from sys import argv
-   if __debug__:
+import unittest
+# sem qualquer classe, apenas testas funções.
+class Funcoes(unittest.TestCase):
+   def testeJaExistente(self):
+      if __debug__:
+         raiz = os.path.join(os.getenv("HOME"),"Pictures", "*/*.xml")
+         for arquivo_xml in glob.glob(raiz, recursive=True):
+            instancia = ConfiguracaoXML.instanciar(arquivo_xml)
+            info_importante(instancia)
+         ...
+
+         caminho = os.path.join(
+            os.getenv("HOME"),
+            "Pictures/computação/computação.xml"
+         )
+         instancia = ConfiguracaoXML.instanciar(caminho)
+         tempo_total = tempo_de_apresentacao(caminho)
+         print(
+            "tempo total de apresentação: {} ==> {}h"
+            .format(tempo_total, tempo_total // 3_600)
+         )
+      else:
+         # obtém dados vindo do exterior, via 'stdin', 
+         # um 'path' para um arquivo XML com dados da 
+         # transição, então joga na função que computação 
+         # o tempo e retorna via 'stdout'.
+         arquivo_xml = filtra_xml(argv)
+         if arquivo_xml:
+            print(tempo_de_apresentacao(arquivo_xml))
+         else:
+            print("nada encontrado!")
+      ...
+      arquivo_xml = "/usr/share/backgrounds/cosmos/background-1.xml"
+      tempo_legivel = tempo_de_apresentacao(arquivo_xml) // 60
+      print("\ntempo apresentação:{0:<3}min".format(tempo_legivel))
+   ...
+   def variacaoPorConsulta(self):
       raiz = os.path.join(os.getenv("HOME"),"Pictures", "*/*.xml")
       for arquivo_xml in glob.glob(raiz, recursive=True):
-         instancia = ConfiguracaoXML.instanciar(arquivo_xml)
-         info_importante(instancia)
+         print(arquivo_xml.split("/")[-1].removesuffix(".xml"))
+         # nome mais curto para facilitar codificação.
+         funcao = tempo_de_apresentacao
+         for _ in range(5):
+            print("." * 4, funcao(arquivo_xml))
       ...
+   ...
+...
 
-      caminho = os.path.join(
-         os.getenv("HOME"),
-         "Pictures/computação/computação.xml"
-      )
-      instancia = ConfiguracaoXML.instanciar(caminho)
-      tempo_total = tempo_de_apresentacao(caminho)
-      print(
-         "tempo total de apresentação: {} ==> {}h"
-         .format(tempo_total, tempo_total // 3_600)
-      )
+if __name__ == "__main__":
+   from sys import argv
+   # está usando o suíte de teste do Python:
+   e_o_suite_de_testes = (
+      ("python" in argv) and 
+      ("-m" in argv) and
+      ("unittest" in argv)
+   )
+
+   if (not e_o_suite_de_testes):
       print(argv)
-   else:
       # obtém dados vindo do exterior, via 'stdin', 
       # um 'path' para um arquivo XML com dados da 
       # transição, então joga na função que computação 
@@ -96,9 +133,6 @@ if __name__ == "__main__":
          print(tempo_de_apresentacao(arquivo_xml))
       else:
          print("nada encontrado!")
-   ...
-
-   arquivo_xml = "/usr/share/backgrounds/cosmos/background-1.xml"
-   tempo_legivel = tempo_de_apresentacao(arquivo_xml) // 60
-   print("\ntempo apresentação:{0:<3}min".format(tempo_legivel))
+   else:
+      unittest.main()
 ...
