@@ -31,6 +31,7 @@ pub const CAMINHO_ARQUIVO: &str = concat!(
 
 // atalho para o binário do Python.
 pub const PYTHON: &'static str = "/usr/bin/python3";
+pub type Str = &'static str;
 
 pub const ARQUIVO_CONF: &str = concat!(
    env!("RUST_CODES"),
@@ -44,8 +45,6 @@ pub const SELECOES_FEITAS: &str = concat!(
    "/alternador-wallpapers/data",
    "/historico_de_escolhas_feitas.txt"
 );
-
-pub type Str = &'static str;
 
 // arquivo de configuração das 'Datas Especiais'.
 #[allow(dead_code)]

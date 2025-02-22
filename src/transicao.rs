@@ -1,53 +1,32 @@
+extern crate date_time;
+// contiação do módulo ...
+mod embaralhamento;
+mod datas_especiais;
+mod resolve_repeticoes;
 
-// biblioteca padrão do Rust:
+// Biblioteca padrão do Rust:
 use std::str::FromStr;
 use std::time::Duration;
 use std::env;
 use std::path::{PathBuf};
 use std::ffi::{OsString, OsStr};
 use std::process::{Output, Command};
-
-// própria lib.
+// Própria lib.
 use super:: banco_de_dados::{grava_escolha, le_escolha};
 use crate::constantes::{RAIZ, PYTHON};
-
-// bibliotecas externas:
-extern crate date_time;
+// Bibliotecas externas:
 pub use date_time::date_tuple::DateTuple;
-
-// contiação do módulo ...
-mod embaralhamento;
-mod datas_especiais;
-mod resolve_repeticoes;
 
 /* também re-exporta função para não ter
  * que importar aqui também. */
 use embaralhamento::{sortear, embaralha};
-
 use super::configuracao::{raiz_wallpapers, wallpapers_externos};
+
 /* acha todos XML que contém uma transição programada de determinados 
  * wallpapers, geralmente localizados no mesmo diretório de tal. */
 pub fn parte_i() -> Vec<PathBuf> {
    // todos arquivos e subdiretórios da RAIZ dada.
    let sua_localizacao = raiz_wallpapers().read_dir().unwrap();
-
-   /*
-   // lista com todos arquivos XML encontrados.
-   let mut arquivos_xml:Vec<PathBuf> = Vec::new();
-   // adicionando XML's do sistema.
-   let caminhos:[&str; 3] = [
-      "/usr/share/backgrounds/cosmos/background-1.xml",
-      "/usr/share/backgrounds/contest/focal.xml",
-      "/usr/share/backgrounds/ubuntu-mate-photos/ubuntu_mate_photos.xml"
-   ];
-   /* para adicionar caminho específico, 
-    * adiciona na array. */
-   for pth_str in caminhos.into_iter() {
-      let caminho = Path::new(pth_str).to_path_buf();
-      // só adiciona se existir.
-      if caminho.exists() 
-         { arquivos_xml.push(caminho); }
-   }*/
 
    /* pegando já "wallpapers externos" à raiz, porém filtrando apenas
     * caminhos existentes. */
@@ -358,14 +337,11 @@ fn parte_v(caminho:PathBuf) -> PathBuf {
    return caminho;
 } 
 
-/** executa o comando de troca de wallpapers acionando uma 
-  transição-de-wallpapers já pré-configurada. */
+/** Executa o comando de troca de wallpapers acionando uma 
+  * transição-de-wallpapers já pré-configurada. */
 pub fn alterna_transicao() {
-   /* obtendo, de maneira aleatória, uma 
-    * nova transição-de-wallpapers, baseado
-    * na data de hoje. */
    let data_de_hoje = DateTuple::today();
-   // último alteração foi ... :
+   // Último alteração foi ... :
    let ultima_tw = match le_escolha() {
       Ok(caminho) => {
          let str:String = String::from( 
@@ -378,7 +354,6 @@ pub fn alterna_transicao() {
       },
       Err(_) => String::from("nenhuma alteração anterior"),
    };
-   //let nova_transicao = parte_v(parte_iv(data_de_hoje));
    // nova implementação.
    let nova_transicao = parte_v(resolve_repeticoes::parteIV(data_de_hoje));
    // arquivo selecionado agora:
@@ -414,15 +389,14 @@ pub fn alterna_transicao() {
 
    // mensagem informando o que está ocorrendo.
    println!(
-      "\nalternância transição-de-wallpapers automaticamente acionada.
-      \r\tseleção anterior: \"{}\"
-      \r\tarquivo selecionado:\"{}\"\n",
+      "\nAlternância transição-de-wallpapers automaticamente acionada.
+      \r\tSeleção anterior: \"{}\"
+      \r\tArquivo selecionado:\"{}\"\n",
       ultima_tw, atual_tw
    );
 }
 
-/* pega tempo da atual transição em segundos
- * e retorna um 'Duration'. */
+/* Pega tempo da atual transição em segundos e retorna um 'Duration'. */
 pub fn duracao_atual_transicao() -> Duration {
    // pega dos registros último background trocado.
    let escolha:OsString = {

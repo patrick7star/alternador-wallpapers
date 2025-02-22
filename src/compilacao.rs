@@ -1,26 +1,22 @@
-
-
 /** 
- Executa compilação do artefato otimizado
- na iniciação do programa, porém, o faz em
- paralelo com a execução, já que pode parar
- o programa se houver algum erro, ou interromper
- a execução do restante do código por um
- bom tempo.
+ Executa compilação do artefato otimizado na iniciação do programa, porém, 
+ o faz em paralelo com a execução, já que pode parar o programa se houver 
+ algum erro, ou interromper a execução do restante do código por um bom 
+ tempo.
 */
 
 use std::{env, ffi::{OsStr}};
 use std::path::{Path, Component, PathBuf};
 use std::process::Command;
-/* compila binário principal se, primeiro,
- * não estiver rodando ele; outra é que,
- * também ele não existir. Faz isso por
- * um subprocesso, para que não interfira
- * na chamada da função principal, nem
+
+
+/* compila binário principal se, primeiro, não estiver rodando ele; 
+ * outra é que, também ele não existir. Faz isso por um subprocesso, 
+ * para que não interfira na chamada da função principal, nem
  * interrompa o programa em caso de error. */
 fn hora_de_compilar() -> bool {
    let rodando_no_debug: bool = {
-      match dbg!(env::current_exe()) {
+      match env::current_exe() {
          Ok(caminho) => {
             let str = OsStr::new("debug");
             let m = Component::Normal(str);
@@ -49,17 +45,18 @@ fn hora_de_compilar() -> bool {
 }
 
 // complementa link ao executável.
-fn computa_caminho<C>(caminho: C) -> PathBuf
+pub fn computa_caminho<C>(caminho: C) -> PathBuf
   where C: AsRef<Path> 
 {
    // à partir do caminho do executável ...
    match env::current_exe() {
       Ok(mut base) => {
+         /* remove componentes do caminho até chegar ao diretório base,
+          * onde fica, ou no mínimo tem um subdiretório com o código. */
          while !base.ends_with("target")
             { base.pop(); }
-         /* remove também o diretório 'target'.
-          * Então agora está no diretório
-          * do 'caixote' do código. */
+         /* remove também o diretório 'target'. Então agora está no 
+          * diretório do 'caixote' do código. */
          base.pop(); 
          // complementa com o caminho passado.
          base.push(caminho);
@@ -72,8 +69,7 @@ fn computa_caminho<C>(caminho: C) -> PathBuf
    }
 }
 
-/* executa compilação em sí. Confirma
- * se foi feito, ou não. */
+/* executa compilação em sí. Confirma se foi feito, ou não. */
 pub fn executa_compilacao() -> bool {
    // caminho do caixote.
    let diretorio = computa_caminho(".");

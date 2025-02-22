@@ -1,5 +1,3 @@
-
-
 /*!
  Onde serão pega todas configurações do programa, mexido nela a execução
  do programa se derá em tempo diferente. O arquivo será em JSON, e 
@@ -8,10 +6,21 @@
  e etc.
 */
 
-use serde_json::{self, Value};
+// Biblioteca padrão do Rust:
 use std::fs::{read_to_string};
 use std::path::{Path, PathBuf};
+use std::env::var;
+use std::str::FromStr;
+// Componentes do próprio projeto(outros módulos):
 use crate::constantes::ARQUIVO_CONF;
+// Bibliotecas externas:
+use serde_json::{self, Value};
+use date_time::date_tuple::DateTuple;
+
+// Apelidos de abstrações de dados muito compridas; para mais legibilidade:
+type LinhaData = (String, DateTuple, DateTuple);
+type DEs = Option<Vec<(String, DateTuple, DateTuple)>>;
+
 
 /* carrega o único arquivo de configuração JSON com todos valores 
  * necessários para execução do programa.
@@ -30,7 +39,6 @@ fn carrega_configuracoes() -> Value {
    }
 }
 
-use std::env::var;
 /// atual raiz onde os principais wallpapers do sistema estão agora.
 pub fn raiz_wallpapers() -> PathBuf {
    // tenta obter valor desta chave específica na configuração JSON.
@@ -88,19 +96,12 @@ pub fn wallpapers_externos() -> Vec<PathBuf> {
    caminhos
 }
 
-// tipos tratados abaixo:
-type LinhaData = (String, DateTuple, DateTuple);
-type DEs = Option<Vec<(String, DateTuple, DateTuple)>>;
-
-use date_time::date_tuple::DateTuple;
-use std::str::FromStr;
-
-
 fn extrai_data(string: &str) -> DateTuple {
    let partes = string.split_once("/").unwrap();
    let mes = u8::from_str(partes.1.trim()).unwrap();
    let dia = u8::from_str(partes.0.trim()).unwrap();
    let atual = DateTuple::today();
+
    DateTuple::new(atual.get_year(), mes, dia).unwrap()
 }
 
@@ -137,6 +138,7 @@ pub fn coleta_datas_especiais_ii () -> DEs  {
    if lista.is_empty() { None }
    else { Some (lista) }
 }
+
 
 #[cfg(test)]
 mod tests {
