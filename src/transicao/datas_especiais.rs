@@ -1,52 +1,38 @@
-
-
 /*
- Como a datas especiais, que por serem
- especiais, ganham exceção na seleções
- no dia que são marcadas, como dias que
- os antecedem.
+   Como a datas especiais, que por serem especiais, ganham exceção na 
+ seleções no dia que são marcadas, como dias que os antecedem.
 
- Para marcar alguma é preciso a data de 
- início, como o dia final(que aqui é a
- data especial em sí). O nome do arquivo
- é o 'namespace', se ele não existe na 
- busca, não será selecionado. O nome da
- 'variável' têm que ser o nome do arquivo
- XML, e tem que está antes do sinal de 
- igual, já o 'intervalo', deve está à
- frente do nome da variável(que é o mesmo
- nome do arquivo XML, sem a extensão),
- separado por dois pontos. A sintaxe dele
- é uma primeira data que vai até outra(
- sendo está a data especial em sí) ambas 
- na forma de calendário, mas sem o ano 
- explicitado; sendo ambas separadas pela 
- preposição 'à' onde cada declaração desta
- estará em sua devida linha. Obviamente 
- elas não podém ser trocadas de ordem, se 
- forem o programa vai detectar, e apitar erro.
+   Para marcar alguma é preciso a data de início, como o dia final(que aqui 
+ é a data especial em sí). O nome do arquivo é o 'namespace', se ele não 
+ existe na busca, não será selecionado. O nome da 'variável' têm que ser o 
+ nome do arquivo XML, e tem que está antes do sinal de igual, já o 
+ 'intervalo', deve está à frente do nome da variável(que é o mesmo nome do 
+ arquivo XML, sem a extensão), separado por dois pontos. A sintaxe dele é 
+ uma primeira data que vai até outra( sendo está a data especial em sí) 
+ ambas na forma de calendário, mas sem o ano explicitado; sendo ambas 
+ separadas pela preposição 'à' onde cada declaração desta estará em sua 
+ devida linha. Obviamente elas não podém ser trocadas de ordem, se forem o 
+ programa vai detectar, e apitar erro.
 
+   Dias das 'datas especiais' não podem se sobrepor, mais os intervalos 
+ cruzados o podem.
 
- Dias das 'datas especiais' não podem
- se sobrepor, mais os intervalos cruzados
- o podem.
-
- Tudo isso têm que está no arquivo, localizado
- na raíz rotulado como 'data_especiais.conf';
- abaixo do cabeçalho "Datas Especiais". O 
- arquivo futuramente, tanto mudará de nome, para
- algo mais genérico como "configuração.conf", pois,
- como se pode ver no cabeçalho, servirá como
- configuração geral do programa, então não será
- colocado apenas o tal cabeçalho citado lá.
+   Tudo isso têm que está no arquivo, localizado na raíz rotulado como 
+ 'data_especiais.conf'; abaixo do cabeçalho "Datas Especiais". O arquivo 
+ futuramente, tanto mudará de nome, para algo mais genérico como 
+ "configuração.conf", pois, como se pode ver no cabeçalho, servirá como 
+ configuração geral do programa, então não será colocado apenas o tal 
+ cabeçalho citado lá.
  */
 
-// biblioteca padrão:
+// Biblioteca padrão:
 use std::collections::{BTreeSet, HashMap};
 use std::str::FromStr;
-use super::{parte_ii, RAIZ, percentual, avalia_booleano};
 use std::path::{PathBuf};
-// biblioteca externa:
+// Próprio projeto:
+use super::{parte_ii, RAIZ, percentual, avalia_booleano};
+use crate::configuracao::coleta_datas_especiais_ii;
+// Biblioteca externa:
 use date_time::date_tuple::DateTuple;
 
 // melhora codificação e legibilidade:
@@ -60,13 +46,15 @@ type DEs = Option<Vec<LinhaData>>;
  * o último, ou a data de feriádo na maioria dos
  * casos aqui. */
 type IntervaloData = (DateTuple, DateTuple);
+// melhorar a legibilidade.
+type ID = IntervaloData;
 
-/* separa um cabeçalho, e as linhas ligadas à ele,
+
+/* Separa um cabeçalho, e as linhas ligadas à ele,
  * por meio de um dicionário. */
 fn todas_configuracoes(conteudo: String) -> Cabecalho {
    let mut cabecalho_detectado = false;
-   /* dicionário que com 'chave de cabeçalho',
-    * coleta linhas baixo dele. */
+   /* Dicionário que com 'chave de cabeçalho', coleta linhas baixo dele. */
    let mut mapa = Cabecalho::new();
    let mut chave: String = "".to_string();
 
@@ -113,10 +101,9 @@ fn todas_configuracoes(conteudo: String) -> Cabecalho {
    return mapa;
 }
 
-/* pega slice-string formatando uma data(dia e mês)
- * e a transforma nesta especificamente baseado na 
- * estrutura adequada, desconsidera o ano, e coloca
- * sempre como o atual. */
+/* Pega slice-string formatando uma data(dia e mês) e a transforma nesta 
+ especificamente baseado na estrutura adequada, desconsidera o ano, e 
+ coloca sempre como o atual. */
 fn extrai_data(string: &str) -> DateTuple {
    let partes = string.split_once("/").unwrap();
    let mes = u8::from_str(partes.1.trim()).unwrap();
@@ -124,8 +111,7 @@ fn extrai_data(string: &str) -> DateTuple {
    let atual = DateTuple::today();
    DateTuple::new(atual.get_year(), mes, dia).unwrap()
 }
-/* parse linha contendo nome do arquivo, e
- * período de atual. */
+/* Parse linha contendo nome do arquivo, e período de atual. */
 fn parse_linha(linha: String) -> LinhaData {
    let partes = linha.split_once(':').unwrap();
 
@@ -143,11 +129,9 @@ fn parse_linha(linha: String) -> LinhaData {
    return (arquivo_xml, data_inicio, data_fim);
 }
 
-/* pega do mapa apenas as 'datas especiais',
- * entregando já formatada suas linhas; e
- * claro que se não houver tanto o cabeçalho,
- * quanto nada anexado à ele, simplesmente
- * "nada" será retornado. */
+/* Pega do mapa apenas as 'datas especiais', entregando já formatada suas 
+linhas; e claro que se não houver tanto o cabeçalho, quanto nada anexado à 
+ele, simplesmente "nada" será retornado. */
 #[allow(dead_code)]
 pub fn coleta_datas_especiais(conteudo: String) -> DEs  {
    let mapa = todas_configuracoes(conteudo);
@@ -169,9 +153,7 @@ pub fn coleta_datas_especiais(conteudo: String) -> DEs  {
    return Some(lista_des);
 }
 
-// melhorar a legibilidade.
-type ID = IntervaloData;
-/* faz uma correção no 'DateTuple', em especificamente
+/* Faz uma correção no 'DateTuple', em especificamente
  * o ano, para propósitos nos cálculos da codificação. */
 fn corrige_dt(hoje: DateTuple, periodo: ID) -> (DateTuple, ID) {
    let ano = periodo.0.get_year();
@@ -213,22 +195,12 @@ pub fn e_periodo_de_ferias(data: DateTuple, feriados: DEs) -> bool {
    }
 }
 
-// use crate::compilacao::computa_caminho;
-use crate::configuracao::coleta_datas_especiais_ii;
 /* Faz uma seleção levando transições de datas especiais em consideração 
  * na seleção. Usa a função acima em consideração na seleção randômica.  
  */
 #[allow(non_snake_case)]
 pub fn parteIII(hoje:DateTuple) -> PathBuf {
-   /* extraindo feriados do arquivo de configuração. */
-   /*
-   let caminho = computa_caminho("data/datas_especiais.conf");
-   let conteudo = read_to_string(caminho).unwrap();
-   let feriados = match coleta_datas_especiais(conteudo) {
-      Some(array) => array,
-      None => 
-         { panic!("sem feriados no arquivo de configuração."); }
-   }; */
+   /* Extraindo feriados do arquivo de configuração. */
    let feriados = coleta_datas_especiais_ii().unwrap();
    // obtem uma transição antes.
    let transicao = parte_ii();
@@ -320,6 +292,7 @@ pub fn parteIII(hoje:DateTuple) -> PathBuf {
 mod tests {
    use super::*;
    use std::fs::{read_to_string};
+   use std::time::{Duration, Instant};
 
    #[test]
    fn saida_sastifatoria() {
@@ -521,20 +494,25 @@ mod tests {
       assert!(true);
    }
 
-   use crate::temporizador::Cronometro;
    use crate::transicao::parte_iii;
+
    #[test]
    fn comparandoFuncoes_PARTEIII() {
       let mut inicio = DateTuple::new(1903, 1, 10).unwrap();
-      let mut c = Cronometro::novo();
+      let c = Instant::now();
+      let a: Duration;
+      let mut t = Duration::new(0, 0);
+
       for _ in 1..500 {
          // obtendo nova transição.
          let _nt = parteIII(inicio.clone());
          // avançando dia ...
          inicio = inicio.next_date();
       }
-      let t = c.marca();
-      //c.reseta();
+
+      a = t;
+      t = c.elapsed();
+
       for _ in 1..500 {
          // obtendo nova transição.
          let _nt = parte_iii(inicio.clone());
@@ -542,7 +520,7 @@ mod tests {
          inicio = inicio.next_date();
       }
       // variação do último marco(exclui necessidade de reset).
-      let T = c.delta();
+      let T = t - a;
       println!("novo:{:?}\nantigo:{:#?}", t, T);
       /* a intenção inicial não era o desempenho, entretanto, se veio 
        * de bônus, então é só lucro. */

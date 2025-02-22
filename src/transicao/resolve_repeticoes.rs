@@ -1,57 +1,44 @@
-
-/* cuida da quarta parte das funções auxiliares.
- * Ela tem como papel cuidar de que a próxima
- * seleção não seja a mesma que já está ativa,
- * ou foi utilizada por último.
+/* Cuida da quarta parte das funções auxiliares. Ela tem como papel cuidar 
+de que a próxima seleção não seja a mesma que já está ativa, ou foi 
+utilizada por último.
  */
 
-// próprio módulo:
-use super::datas_especiais::{ parteIII, e_periodo_de_ferias };
-// próprio biblioteca:
+// Próprio módulo:
+use crate::configuracao::coleta_datas_especiais_ii;
 use crate::banco_de_dados::{grava_escolha, le_escolha};
-// use crate::compilacao::computa_caminho;
-// biblioteca padrão do Rust:
-// use std::fs::read_to_string;
+use super::datas_especiais::{ parteIII, e_periodo_de_ferias };
+// Biblioteca padrão do Rust:
 use std::path::{PathBuf};
-// biblioteca externa:
+// Biblioteca externa:
 use date_time::date_tuple::DateTuple;
 
 
-use crate::configuracao::coleta_datas_especiais_ii;
 /* tentanto reduzir repetições seguidas na seleção aleatória. Aqui elas 
  * são escritas com a numeração romana maiúsculas, simplesmente para 
  * diferenciar-se do original que ele está substituindo, já que este, não 
  * será deixado( descontinuado) de uma vez só. */
 #[allow(non_snake_case)]
 pub fn parteIV(hoje:DateTuple) -> PathBuf {
-   /* extraindo feriados do arquivo de configuração. */
-   /*
-   let caminho = computa_caminho("data/datas_especiais.conf");
-   let conteudo = read_to_string(caminho).unwrap();
-   let feriados = match coleta_datas_especiais(conteudo) {
-      Some(array) => array,
-      None => 
-         { panic!("sem feriados no arquivo de configuração."); }
-   }; */
+   /* Extraindo feriados do arquivo de configuração. */
    let feriados = coleta_datas_especiais_ii().unwrap();
    let mut nova_transicao = parteIII(hoje.clone());
-   // o que foi selecionado anterior.
+
    match le_escolha() {
       Ok(selecao_anterior) => {
          // não pode ser igual para não causar eventos repetidos.
          while selecao_anterior == nova_transicao {
             // atual para caber na tela(ajuda na codificação).
             let f = Some(feriados.clone());
+
             if e_periodo_de_ferias(hoje.clone(), f) 
                { break; }
-            //if periodos_de_excecoes { break; }
             nova_transicao = parteIII(hoje.clone());
          }
       },
       Err(erro) => 
          { println!("\nERROR:{} ... continuando mesmo assim", erro); }
    };
-   // grava opção a retornar.
+
    grava_escolha(nova_transicao.clone());
    return nova_transicao;
 }
@@ -69,11 +56,15 @@ mod tests {
    use std::ffi::OsStr;
    use std::str::FromStr;
    use std::path::Path;
-   /* clona arquivo, então renomea o original,
-    * para que não sofra alteração caso ele seja
-    * importante para outras coisas. Quando chamada
-    * novamente, restauro o original, e deleta
-    * o clone.  */
+   use std::thread;
+   use std::time::{Duration};
+   use std::fs::OpenOptions;
+   use std::io::Write;
+   use crate::transicao::parte_iv;
+
+   /* Clona arquivo, então renomea o original, para que não sofra alteração
+    * caso ele seja importante para outras coisas. Quando chamada 
+    * novamente, restauro o original, e deleta o clone.  */
    fn salva_e_restaura<P>(mut caminhos: Vec<&P>)
      where P: AsRef<Path> + ?Sized + ToString
    {
@@ -125,10 +116,6 @@ mod tests {
       }
    }
 
-   use std::thread;
-   use std::time::{Duration};
-   use std::fs::OpenOptions;
-   use std::io::Write;
    #[test]
    fn SalvaERestaura() {
       let mut f = {
@@ -203,9 +190,9 @@ mod tests {
       assert_eq!(Q, 0);
    }
 
-   use crate::transicao::parte_iv;
    #[test] 
    #[ignore="precisa que tenha precisas configurações no arquivo"] 
+   #[allow(warnings)]
    fn comparaSaidasDeCadaEmPeriodosEspeciais() {
       // poupando atuais arquivos de alterações.
       salva_e_restaura(vec![HISTORICO, ULTIMA_MOD]);
@@ -219,18 +206,20 @@ mod tests {
       ];
       let (mut f1, mut f2): (i32, i32);
       let mut resultados = vec![true];
-      /* testes com vários períodos, que devem está
-       * no arquivo de configuração, certo?! */
+
+      /* Testes com vários períodos, que devem está no arquivo de 
+       * configuração, certo?! */
       for (feriado, data) in feriados.drain(..) {
-         // data aleatória para teste de quase um ano.
+         // Data aleatória para teste de quase um ano.
          let mut t = 0i32;
          f1 = 0; f2 = 0;
-         // testando as duas funções de uma só vez.
+         // Testando as duas funções de uma só vez.
          for funcao in [parte_iv, parteIV] {
             let mut inicio = data.as_ref().unwrap().clone();
             for _ in 1..40 {
                // obtendo nova transição.
                let saida = funcao(inicio.clone());
+
                if saida.file_name().unwrap() == feriado {
                   if funcao == parte_iv
                      { f1 += 1; }
@@ -238,6 +227,7 @@ mod tests {
                      { f2 += 1; }
                } 
                t += 1;
+
                println!(
                   "data: {}\tseleção: {:#?}",
                   inicio.to_readable_string(),
@@ -256,9 +246,8 @@ mod tests {
             (f1 - f2).abs(),
             feriado
          );
-         /* verifica se a dirença dos 'outputs'
-          * estão pertos, por uma estreita margem
-          * de erro. */
+         /* Verifica se a dirença dos 'outputs' estão pertos, por uma 
+          * estreita margem de erro. */
          resultados.push((f1-f2).abs() <= 5);
       }
       // restaurando do backup.
