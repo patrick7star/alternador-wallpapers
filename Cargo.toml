@@ -1,11 +1,12 @@
 [package]
 name = "alternador_wallpapers"
-version = "0.5.6"
+version = "1.0.0"
 edition = "2021"
 
 [dependencies]
 date_time = { path="extern_lib/date-time/", version="2.2.0" }
-utilitarios = { path="extern_lib/utilitarios/", version="1.0.1" }
+#utilitarios = { path=ju"extern_lib/utilitarios/", version="1.0.1" }
+utilitarios = { path="../rust-utilitarios/" }
 serde_json = "1.0.91"
 
 [dev-dependencies]
