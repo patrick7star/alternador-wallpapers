@@ -1,8 +1,10 @@
-
-// próprio caixote.
+// Componente do próprio projeto:
 use crate::banco_de_dados::le_escolha;
 use crate::transicao::duracao_atual_transicao;
-
+use crate::constantes::ULTIMA_NOTIFICACAO;
+// Bibliotecas externas:
+use utilitarios::legivel::tempo as Tempo;
+// Biblioteca padrão do Rust:
 use std::path::Path;
 use std::process::Command;
 use std::fs::{read, write};
@@ -14,8 +16,7 @@ trait Extensao {
 }
  
 impl Extensao for String {
-   /* faz uma string com um título, ou seja,
-    * faz cada palavra "capitalizada". */
+   // Faz uma string como título, uma palavra "capitalizada".
    fn titulo(&self) -> String {
       let mut nova_str = String::new();
       for s in self.split(' ') {
@@ -44,7 +45,6 @@ fn atual_transicao() -> String {
    .to_string()
 }
 
-use crate::constantes::ULTIMA_NOTIFICACAO;
 
 /* verifica se o wallpaper que plotou notificação anterior, é o mesmo que 
  está sendo plotado no momento. */
@@ -62,7 +62,6 @@ fn mesma_que_a_anterior(anterior: &str) -> bool {
    conteudo == anterior
 }
 
-use utilitarios::legivel::tempo as Tempo;
 
 /* faz uma notificação da atual transição aplicada ao sistema. */
 pub fn popup_notificacao_de_transicao() {
@@ -99,8 +98,11 @@ pub fn popup_notificacao_de_transicao() {
    .spawn().unwrap()
    .wait().unwrap();
 
-   // emitindo que a mensagem foi enviada.
-   println!("notificação foi \"plotada\" com sucesso.");
+   if cfg!(debug_assertions) {
+      // emitindo que a mensagem foi enviada.
+      println!("Notificação foi \"plotada\" com sucesso.");
+   }
+
    // registrando nova alteração.
    let bytes = nome_transicao.bytes().collect::<Vec<u8>>();
    write(ULTIMA_NOTIFICACAO, &bytes[..]).unwrap();

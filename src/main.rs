@@ -42,8 +42,8 @@ fn pausa_aleatoria() {
    while timer.elapsed() < limite {
       let restante = limite - timer.elapsed();
 
-      println!(
-         "Tempo de espera para iniciar de fato ...{:>10}", 
+      print!(
+         "\rTempo de espera para iniciar de fato ...{:>10}", 
          tempo_l(restante.as_secs(), true)
       );
       sleep(Duration::from_secs(sortear::u64(9..=43)));

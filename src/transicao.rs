@@ -22,6 +22,10 @@ pub use date_time::date_tuple::DateTuple;
 use embaralhamento::{sortear, embaralha};
 use super::configuracao::{raiz_wallpapers, wallpapers_externos};
 
+type Periodo = (DateTuple, DateTuple);
+type Conclusao = Option<f32>;
+
+
 /* acha todos XML que contém uma transição programada de determinados 
  * wallpapers, geralmente localizados no mesmo diretório de tal. */
 pub fn parte_i() -> Vec<PathBuf> {
@@ -93,8 +97,6 @@ fn parte_ii() -> PathBuf {
    return todos[numero_sorteado as usize].clone();
 }
 
-type Periodo = (DateTuple, DateTuple);
-type Conclusao = Option<f32>;
 /* computa o percentual quão decorreu 
  * até o momento no período do feriado.
  */
@@ -291,9 +293,7 @@ fn parte_iv(hoje:DateTuple) -> PathBuf {
    return nova_transicao;
 }
 
-/* ajusta encaixe da melhor, baseado na 
- * transição que foi escolhida.
- */
+/* Ajusta encaixe da melhor, baseado na transição que foi escolhida. */
 fn parte_v(caminho:PathBuf) -> PathBuf {
    let caminho_i = caminho.as_path();
    let nome = caminho_i.file_name().unwrap();
@@ -337,66 +337,53 @@ fn parte_v(caminho:PathBuf) -> PathBuf {
    return caminho;
 } 
 
+/* Trecho cuida essencialmente da mudança da atual transição para uma nova
+ * que é passada como argumento. */
+fn executa_transicao_de_wallpaper(input: PathBuf, input_a: PathBuf) {
+	let caminho = input.as_path();
+	// Tupla de argumentos levando em conta o ambiente gráficos.
+   let (chave, atributo) =  match env::var("XDG_CURRENT_DESKTOP")
+	{
+		Ok(ambiente_grafico) => {
+			if ambiente_grafico == "ubuntu:GNOME"
+				{ ("org.gnome.desktop.background", "picture-uri") }
+			else if ambiente_grafico == "MATE"
+				{ ("org.mate.background", "picture-filename") }
+			else
+				{ panic!("não implementado para tal ambiente '{}'!", ambiente_grafico); }
+		} Err(erro_msg) =>
+			{ panic!("Possível error: {erro_msg:}"); }
+	};
+
+	/* Constituindo o comando que roda, então executando ele ...*/
+   Command::new("gsettings")
+	.args(["set", chave, atributo, caminho.to_str().unwrap()].into_iter())
+   .spawn().unwrap().wait().unwrap();
+
+	/* Mensagem explicando o que foi realizado acima. */
+	let nova_selecao = input.file_name().unwrap();
+	let ultima_selecao = input_a.file_name().unwrap();
+   println!(
+      "\nAlternância transição-de-wallpapers automaticamente acionada.
+      \r\tSeleção anterior: \"{:?}\"
+      \r\tArquivo selecionado:\"{:?}\"\n",
+		ultima_selecao, nova_selecao
+   );
+}
+
 /** Executa o comando de troca de wallpapers acionando uma 
   * transição-de-wallpapers já pré-configurada. */
 pub fn alterna_transicao() {
    let data_de_hoje = DateTuple::today();
-   // Último alteração foi ... :
-   let ultima_tw = match le_escolha() {
-      Ok(caminho) => {
-         let str:String = String::from( 
-            caminho.as_path()
-            .file_name().unwrap()
-            .to_str().unwrap()
-         );
-         // retornando string gerada acima ...
-         str
-      },
-      Err(_) => String::from("nenhuma alteração anterior"),
-   };
-   // nova implementação.
    let nova_transicao = parte_v(resolve_repeticoes::parteIV(data_de_hoje));
-   // arquivo selecionado agora:
-   let atual_tw: &str = {
-      nova_transicao.as_path()
-      .file_name().unwrap()
-      .to_str().unwrap()
-   };
-   // extraindo slice-string do 'PathBuf'.
-   let caminho:&str = {
-      nova_transicao
-      .as_os_str()
-      .to_str()
-      .unwrap()
-   };
-   // iterador contendo todos argumentos.
-   let (chave, atributo):(&'static str, &'static str) = {
-      let ambiente = env::var("XDG_CURRENT_DESKTOP").unwrap(); 
-      if ambiente == "ubuntu:GNOME"
-         { ("org.gnome.desktop.background", "picture-uri") }
-      else if ambiente == "MATE"
-         { ("org.mate.background", "picture-filename") }
-      else
-         { panic!("não implementado para tal ambiente!"); }
-   };
-   //let argumentos = ["set", chave, atributo, caminho].into_iter();
-   // enfim, rodando o comando ...
-   let mut comando_alterna = Command::new("gsettings");
-   comando_alterna.args(["set", chave, atributo, caminho].into_iter());
-
-   // executando...
-   comando_alterna.spawn().unwrap().wait().unwrap();
-
-   // mensagem informando o que está ocorrendo.
-   println!(
-      "\nAlternância transição-de-wallpapers automaticamente acionada.
-      \r\tSeleção anterior: \"{}\"
-      \r\tArquivo selecionado:\"{}\"\n",
-      ultima_tw, atual_tw
-   );
+	
+	if let Ok(ultima_selecao) = le_escolha() {
+		executa_transicao_de_wallpaper
+			(nova_transicao, ultima_selecao);
+	}
 }
 
-/* Pega tempo da atual transição em segundos e retorna um 'Duration'. */
+/** Pega tempo da atual transição em segundos e retorna um 'Duration'. */
 pub fn duracao_atual_transicao() -> Duration {
    // pega dos registros último background trocado.
    let escolha:OsString = {
