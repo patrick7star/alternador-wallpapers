@@ -1,6 +1,8 @@
+extern crate utilitarios;
 
-extern crate fastrand;
+use utilitarios::aleatorio::{sortear};
 use std::time::{Duration, Instant};
+
 
 #[test]
 fn nova_alternancia_continua() {
@@ -12,9 +14,10 @@ fn nova_alternancia_continua() {
    const MINIMO:u16 = 5;
    const MAXIMO:u16 = 8 ;
    let mut cronometro = Instant::now();
-   let tf:u16 = fastrand::u16(MINIMO..=MAXIMO);
+   let tf:u16 = sortear::u16(MINIMO..=MAXIMO);
    let tempo_final = Duration::from_secs(tf as u64);
    let mut qtd = 0;
+
    'execucao:loop {
       if cronometro.elapsed() > tempo_final {
          //alterna_transicao();
