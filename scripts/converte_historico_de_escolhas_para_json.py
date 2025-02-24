@@ -1,7 +1,7 @@
 import json
 from pathlib import (Path)
 from typing import (List)
-from unittest import (TestLoader, TestCase, skip)
+from unittest import (TestCase, skip)
 
 FONTE_TXT = Path("data/historico_de_escolhas_feitas.txt")
 DESTINO_JSON = Path(FONTE_TXT.parent, "historico_de_escolhas_feitas.json")
