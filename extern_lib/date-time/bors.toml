@@ -1,3 +1,0 @@
-status = ["build-and-test", "code-style"]
-pr-status = ["License Compliance", "WIP"]
-delete-merged-branches = true
