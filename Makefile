@@ -10,9 +10,26 @@ backups:
 	@echo "\nListagem de todos backups feitos no computador:\n"
 	@ls --human-readable --size --sort=time -1 $(CAMINHO)*.tar
 
-release-faster:
-	cargo rustc --release -- --extern 'utilitarios=lib/libutilitarios.rlib'
-	@echo "Compila usando bibliotecas estáticas já compilada."
+debug:
+	cargo build --verbose --release
+
+release-ja-compilado:
+	@rustc --edition 2021 --crate-name alterandor_wallpapers src/main.rs \
+	-Llib/linux_x86_64																	\
+	--extern 'utilitarios=lib/linux_x86_64/libutilitarios.rlib'				\
+	--extern 'date_time=lib/linux_x86_64/libdate_time.rlib'					\
+	--extern 'lazy_static=lib/linux_x86_64/liblazy_static.rlib'				\
+	--extern 'regex=lib/linux_x86_64/libregex.rlib'								\
+	--extern 'memchr=lib/linux_x86_64/libmemchr.rlib'							\
+	--extern 'regex_automata=lib/linux_x86_64/libregex_automata.rlib'		\
+	--extern 'aho_corasick=lib/linux_x86_64/libiaho_corasick.rlib'			\
+	--extern 'regex_syntax=lib/linux_x86_64/libregex_syntax.rlib'			\
+	--extern 'itoa=lib/linux_x86_64/libitoa.rlib'								\
+	--extern 'serde_json=lib/linux_x86_64/libserde_json.rlib'			   \
+	--extern 'ryu=lib/linux_x86_64/libryu.rlib'									\
+	--extern 'serde=lib/linux_x86_64/libserde.rlib'								\
+	-o target/release/alternador_wallpapers
+	@echo "Compila manualmente usando bibliotecas estáticas já compilada."
 
 script-tests:
 	@python3 -m unittest scripts.converte_historico_de_escolhas_para_json.Unitarios.test_lista_das_antigas_escolhas
