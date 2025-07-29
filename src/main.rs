@@ -6,14 +6,8 @@
  em toda inicialização do computador, ou novo login.
 */
 
-// Biblioteca externas:
-#[allow(warnings)]
+// Bibliotecas externas:
 extern crate utilitarios;
-use utilitarios::aleatorio::sortear;
-use utilitarios::legivel::tempo as tempo_l;
-// Bibliotecas do Rust:
-use std::time::{Instant, Duration};
-use std::thread::sleep;
 // Módulos do próprio projeto:
 mod banco_de_dados;
 mod transicao;
@@ -23,8 +17,21 @@ mod compilacao;
 mod notificacoes;
 mod configuracao;
 mod constantes;
+// #[allow(unused)]
+// mod transicoes;
+mod comunicacao;
 
-// use temporizador::*;
+// Biblioteca externas:
+#[allow(warnings)]
+use utilitarios::aleatorio::sortear;
+use utilitarios::legivel::{tempo as tempo_legivel};
+use utilitarios::terminal::{terminal_largura, Largura};
+// Bibliotecas do Rust:
+use std::time::{Instant, Duration};
+use std::thread::sleep;
+use std::env::var;
+use std::path::{Path};
+// Submódulos deste projeto:
 use transicao::{
    alterna_transicao,
    duracao_atual_transicao
@@ -32,88 +39,89 @@ use transicao::{
 use atualizacoes::atualiza_xmls;
 use constantes::*;
 
+
 fn pausa_aleatoria() {
-   /* pausa de alguns minutos para se curtir a transição anterior. 
+   /* Pausa de alguns minutos para se curtir a transição anterior. 
     * Claro, eles estão quantificados em segundos. */
-   let minutos = sortear::u64(10*60..=15*60);
+   let minutos = {
+      if cfg!(debug_assertions)
+         { sortear::u64(3..=32) }
+      else
+         { sortear::u64(10*60..=15*60) }
+   };
    let limite = Duration::from_secs(minutos);
    let timer = Instant::now();
+   let taxa = || { 
+      if cfg!(debug_assertions)
+         { limite / 6 }
+      else
+         { Duration::from_secs(sortear::u64(9..=43)) }
+    };
 
    while timer.elapsed() < limite {
       let restante = limite - timer.elapsed();
 
-      print!(
-         "\rTempo de espera para iniciar de fato ...{:>10}", 
-         tempo_l(restante.as_secs(), true)
+      println!(
+         "Tempo de espera para iniciar de fato ...{:>10}", 
+         tempo_legivel(restante.as_secs(), true)
       );
-      sleep(Duration::from_secs(sortear::u64(9..=43)));
+      sleep(taxa());
    }
 }
 
-use std::env::var;
-use std::path::{Path};
+fn desenha_cabecalho(msg: &str) {
+   let Largura(a) = terminal_largura().unwrap();
+   let b = msg.len();
+   let n = ((a as usize - b) / 2) as usize;
+   let bar = &"~".repeat(n);
+   
+   println!("{} {msg:} {}", bar, bar);
+}
 
 /** Verificação e configuração de variáveis, diretórios, e etc. */
 fn checagem_e_configuracao_do_ambiente() {
    let inputs = ["RUST_CODES", "XDG_CURRENT_DESKTOP"];
 
-   println!("\nChecagem de variáveis de ambientes estão okay...");
+   desenha_cabecalho("Checagem de variáveis de ambientes estão okay");
 
    for variavel in inputs {
-      assert!(var(variavel).is_ok()); 
-      println!("Variável '{variavel:}' presente.");
+      print!("Variável '{variavel:}' presente ... ");
+
+      if var(variavel).is_ok()
+         { println!("\u{2714}"); }
+      else
+         { println!("\u{1f5d9}"); }
    }
 
    let mut inputs = vec![
        PYTHON, ARQUIVO_CONF, ULTIMA_NOTIFICACAO, 
        CAMINHO_ARQUIVO, BD1
    ];
-   println!("Verificação de todos caminhos do código ...");
+   desenha_cabecalho("Verificação de todos caminhos do código");
 
    for caminho_str in inputs.drain(..) {
       let caminho = Path::new(caminho_str);
 
       print!("{caminho_str:} ... ");
       if caminho.exists()
-         { println!("\u{10003}"); }
+         { println!("\u{2714}"); }
       else
-         { println!("\u{10007}"); }
+         { println!("\u{1f5d9}"); }
    }
-
+   // Separando 'output' dos demais ...
+   print!("\n\n");
 }
 
-fn main() {
-   checagem_e_configuracao_do_ambiente();
-   /* se for o artefato de depuração, então já colocar em caminho uma 
-    * possível compilação da versão otimizada. */
-    if compilacao::executa_compilacao()
-      { println!("Uma compilação foi realizada!"); }
-   else
-      { println!("Nenhuma compilação foi inicializada!"); }
-
-   /* Toda vez que for acionada no começo de do sistema/ou login uma 
-    * nova 'transição de wallpapers' será escolhidas baseado na data de 
-    * acionamento. Agora, o programa também escolha uma nova 'transição',
-    * sem precisar nova inicialização do sistema/ou login;... em média, 
-    * de 5 à 8 horas, decorrida da última mudança.  */
-   if !cfg!(debug_assertions)
-      { pausa_aleatoria();}
-   else
-      { println!("Pausa instantânea!"); }
-
-   // marcando tempo inicial de contagem ...
-   let mut cronometro = Instant::now();
-   /* selecionando um 'tempo final' para que ao passar tal, aciona uma 
-    * nova transição-de-walpapers. Tal tempo 'tf' estará entre 
-    * um MÁXIMO E MÍNIMO. */
-   let tf:u16 = sortear::u16(MINIMO..=MAXIMO);
-   let mut tempo_final = Duration::from_secs(tf as u64);
+fn execucao_continua_da_transicao() {
+   let n = sortear::u16(MINIMO..=MAXIMO) as u64;
+   let mut tempo_final = Duration::from_secs(n);
    let mut execucao_inicial = false;
+   let mut cronometro = Instant::now();
 
    loop {
       let aciona_uma_nova_transicao = {
       /* Se tiver "atigindo" tal tempo, então trocar a transição de 
-       wallpaper atual. */
+       * wallpaper atual. */
          cronometro.elapsed() > tempo_final
                      &&
          execucao_inicial
@@ -123,11 +131,11 @@ fn main() {
          alterna_transicao();
          // Zerá contador... para nova contagem.
          cronometro = Instant::now();
-         /* pegando duração do tempo total de apresentação da nova 
+         /* Pegando duração do tempo total de apresentação da nova 
           * transição de slides, somado à 1min para acabar toda 
           * apresentação. */
          tempo_final = duracao_atual_transicao() + Duration::from_secs(60);
-         // mostra a notificação da atual ação.
+         // Mostra a notificação da atual ação.
          notificacoes::popup_notificacao_de_transicao();
 
       } else if !execucao_inicial {
@@ -144,7 +152,7 @@ fn main() {
          // traduzindo segundos para algo legível.
          println!(
             "contagem regressiva para próxima transição {}",
-            tempo_l(tempo_restante.as_secs(), true)
+            tempo_legivel(tempo_restante.as_secs(), true)
          );
       }
 
@@ -157,3 +165,37 @@ fn main() {
    }
 }
 
+fn main() {
+   checagem_e_configuracao_do_ambiente();
+
+   /* se for o artefato de depuração, então já colocar em caminho uma 
+    * possível compilação da versão otimizada. */
+    if compilacao::executa_compilacao()
+      { println!("Uma compilação foi realizada!"); }
+   else
+      { println!("Nenhuma compilação foi inicializada!"); }
+
+   /* Antes de começar uma nova transição, ou a comunicação exterior; o 
+    * programa simplesmente dá uma breve pausa, prá se ver, e também apreciar
+    * o wallpaper escolhido antes do último desligamento ou login realizado
+    * antes desta nova execução. */
+   pausa_aleatoria();
+
+   /* Diz para processos externos, deste programa, que não é necessário
+    * lançar uma nova instância, porque uma(esta) já está rodando. */
+   let cliente = comunicacao::receptor();
+   let _servidor = comunicacao::transmissor(cliente);
+
+   execucao_continua_da_transicao();
+}
+
+#[cfg(test)]
+#[allow(non_snake_case)]
+mod tests {
+   use super::*;
+   
+   #[test]
+   fn visualizacao_do_output_da_checagem_de_variaveis() {
+      checagem_e_configuracao_do_ambiente();
+   }
+}
