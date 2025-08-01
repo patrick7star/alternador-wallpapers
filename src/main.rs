@@ -31,6 +31,7 @@ use std::time::{Instant, Duration};
 use std::thread::sleep;
 use std::env::var;
 use std::path::{Path};
+use std::process::{Command};
 // Submódulos deste projeto:
 use transicao::{
    alterna_transicao,
@@ -78,6 +79,19 @@ fn desenha_cabecalho(msg: &str) {
    println!("{} {msg:} {}", bar, bar);
 }
 
+fn o_programa_de_transicao_existe(exe: &'static str) -> bool {
+/* O programa pressume que tal programa tem uma opção 'version', assim como
+ * a esmagadora maioria dos programas Linux tem. */
+   let mut comando = Command::new(exe);
+
+   comando.arg("--version");
+
+   if let Ok(result) = comando.output() 
+      { return result.status.success(); }
+   // Se não retornado um valor válido, significa erro, logo confirma tese.
+   false
+}
+
 /** Verificação e configuração de variáveis, diretórios, e etc. */
 fn checagem_e_configuracao_do_ambiente() {
    let inputs = ["RUST_CODES", "XDG_CURRENT_DESKTOP"];
@@ -93,6 +107,7 @@ fn checagem_e_configuracao_do_ambiente() {
          { println!("\u{1f5d9}"); }
    }
 
+   const GSETTINGS: &'static str = "/usr/bin/gsettings";
    let mut inputs = vec![
        PYTHON, ARQUIVO_CONF, ULTIMA_NOTIFICACAO, 
        CAMINHO_ARQUIVO, BD1
@@ -108,6 +123,13 @@ fn checagem_e_configuracao_do_ambiente() {
       else
          { println!("\u{1f5d9}"); }
    }
+
+   print!("{} ...", GSETTINGS); 
+
+   if o_programa_de_transicao_existe(GSETTINGS) 
+      { println!("\u{2714}"); }
+   else
+      { println!("\u{1f5d9}"); }
    // Separando 'output' dos demais ...
    print!("\n\n");
 }
@@ -182,7 +204,8 @@ fn main() {
    pausa_aleatoria();
 
    /* Diz para processos externos, deste programa, que não é necessário
-    * lançar uma nova instância, porque uma(esta) já está rodando. */
+    * lançar uma nova instância, porque uma(esta) já está rodando. Ambas
+    * são threads. */
    let cliente = comunicacao::receptor();
    let _servidor = comunicacao::transmissor(cliente);
 
@@ -197,5 +220,15 @@ mod tests {
    #[test]
    fn visualizacao_do_output_da_checagem_de_variaveis() {
       checagem_e_configuracao_do_ambiente();
+   }
+
+   #[test]
+   #[cfg(target_os="linux")]
+   fn existencia_do_gsettings() {
+      let programa = "/usr/bin/gsettings";
+
+      print!("O programa Gsettings existe? ");
+      assert!(o_programa_de_transicao_existe(programa));
+      println!("Sim.");
    }
 }

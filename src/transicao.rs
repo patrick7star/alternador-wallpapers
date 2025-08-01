@@ -349,10 +349,13 @@ fn executa_transicao_de_wallpaper(input: PathBuf, input_a: PathBuf) {
 				{ ("org.gnome.desktop.background", "picture-uri") }
 			else if ambiente_grafico == "MATE"
 				{ ("org.mate.background", "picture-filename") }
-			else
-				{ panic!("não implementado para tal ambiente '{}'!", ambiente_grafico); }
-		} Err(erro_msg) =>
-			{ panic!("Possível error: {erro_msg:}"); }
+			else { 
+            panic!(
+               "não implementado para tal ambiente '{}'!", 
+               ambiente_grafico
+            ); 
+         }
+		} Err(erro_msg) => { panic!("Possível error: {erro_msg:}"); }
 	};
 
 	/* Constituindo o comando que roda, então executando ele ...*/
@@ -365,8 +368,8 @@ fn executa_transicao_de_wallpaper(input: PathBuf, input_a: PathBuf) {
 	let ultima_selecao = input_a.file_name().unwrap();
    println!(
       "\nAlternância transição-de-wallpapers automaticamente acionada.
-      \r\tSeleção anterior: \"{:?}\"
-      \r\tArquivo selecionado:\"{:?}\"\n",
+      \r\tSeleção anterior: {:?}
+      \r\tArquivo selecionado: {:?}\n",
 		ultima_selecao, nova_selecao
    );
 }
@@ -398,26 +401,27 @@ pub fn duracao_atual_transicao() -> Duration {
       "extern_lib/slide_background/xml_info.py"
    );
    // array com bytes do resultado!
-   let mut resultado: Output = {
+   let resultado: Output = {
       Command::new(PYTHON)
       .arg(caminho_script)
       .arg(escolha)
       .output()
       .unwrap()
    };
-   // removendo quebra-de-linha ...
-   resultado.stdout.pop().unwrap();
-   // formando string com bytes representando número decimal.
    let mut decimal = String::new();
+
+   // Removendo quebra-de-linha ...
+   // resultado.stdout.pop().unwrap();
+
+   // Formando string com bytes representando número decimal.
    for byte in resultado.stdout.iter() 
       { decimal.push(*byte as char); }
    
-   // convertendo para um decimal ponto-flutuante ...
+   // Convertendo para um decimal ponto-flutuante ...
    match f32::from_str(decimal.as_str()) {
-      // criando 'Duration' com valor recuperado ...
+      // Criando 'Duration' com valor recuperado ...
       Ok(segundos) => Duration::from_secs_f32(segundos),
-      /* em caso de erro, sorteio um perído
-       * entre uma hora à quatro horas. */
+      /* Em caso de erro, sorteio um perído entre uma hora à quatro horas. */
       Err(_) => {
          // limites inferior e superior(1h à 4h).
          let (li, ls): (u64, u64) = (3600, 4*3600);
