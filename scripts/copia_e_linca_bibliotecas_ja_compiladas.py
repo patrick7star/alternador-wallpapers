@@ -6,7 +6,7 @@
  tal processo com um script. 
 """
 
-import platform, shutil, os, glob, unittest
+import platform, shutil, os, glob
 from pathlib import (PosixPath as Path)
 
 
@@ -121,6 +121,41 @@ def cria_hard_linques_sem_o_codigo() -> None:
 
    print("\n... processo terminado.\n")
 
+def salva_depedencias_ja_compiladas() -> None:
+   """
+   Método bem mais direto. Não precisa das cópias, apenas vai no repositório
+   com as lib já compilada, então linca(hardlink) ao diretório de 'lib' que 
+   representa o sistema e arquitetura do processador.
+   """
+   #regex = "target/release/deps/*.rlib"
+   regex = str(PADRAO)
+   lista_das_novas_fontes = glob.glob(regex)
+   SETA_UNICODE = '\u27fe'
+
+   print(
+      "\nLincado vários binários referente na base do diretório com um " + 
+      "nome mais limpo."
+   )
+
+   for entrada in lista_das_novas_fontes:
+      In = Path(entrada)
+      Out = apara_este_grande_id_do_nome(In)
+      base = DESTINO.parent
+      Out = base.joinpath(Out.name)
+
+      # Pode pode também ser um caminho absoluto.
+      Out.hardlink_to(In)
+      print("\t\b\b'{}' {} '{}'".format(In.name, SETA_UNICODE, Out.name))
+
+      # Confirma renomeação.
+      assert(Out.exists())
+
+   print("\n... processo terminado.\n")
+
+# === === ===  === === === === === === === === === === === === === === ====
+#                       Testes unitários
+# === === ===  === === === === === === === === === === === === === === ====
+import unittest
 
 class Unitarios(unittest.TestCase):
    def setUp(self):
@@ -145,7 +180,35 @@ class Unitarios(unittest.TestCase):
       #renomea_todos_libs_copiadas()
       cria_hard_linques_sem_o_codigo()
 
-if __name__ == "__main__":
+class SalvaDependenciasJaCompiladas(unittest.TestCase):
+   """
+     O novo método evita a cópia, apenas cria um hardlink, que no final,
+   fica o mesmo. A cópia inicial é algo totalmente desnecessária, justamente
+   por estarmos tratando de hard-linques.
+   """
+   def setUp(self):
+      cria_diretorio_se_necessario()
+
+   def tearDown(self):
+      destino = DESTINO.parent
+      regex = str(destino.joinpath("*.rlib")) 
+      lista = glob.glob(regex)
+
+      print("Local:", destino)
+      print("Quantia:", len(lista))
+
+      for item in lista:
+         Path(item).unlink()
+
+      print("Quantia:", len(glob.glob(regex)))
+
+   def runTest(self):
+      salva_depedencias_ja_compiladas()
+
+# === === ===  === === === === === === === === === === === === === === ====
+#                       Execução do Script
+# === === ===  === === === === === === === === === === === === === === ====
+def metodo_antigo():
    print(
       """
       \rProcesso de cópia das 'libs' que foram geradas na compilação nesta 
@@ -155,5 +218,22 @@ if __name__ == "__main__":
    cria_diretorio_se_necessario()
    realiza_copia_de_todos_bibliotecas_disponiveis()
    cria_hard_linques_sem_o_codigo()
+
+if __name__ == "__main__":
+   print(
+      """
+      \rFaz uma cópia das bibliotecas que foram compiladas nesta máquina.
+      \rEles estarão localizadas em 'lib', no diretório da devida arquitetura
+      \re OS. O processo é mais direto, pois corta a antiga cópia, que parece
+      \rdesnecessária, pois a lincagem já é realizada com 'hardlink'. O outro
+      \rera com simbólicos, depois foi transportado para este, por a cópia
+      \rde bibliotecas inicialmente. O código foi revisto, e aperfeiçoado.
+      """
+   )
+   print("Local:", DESTINO.parent)
+   cria_diretorio_se_necessario()
+   # Remove diretório desnecessário neste algoritmo.
+   DESTINO.rmdir()
+   salva_depedencias_ja_compiladas()
 
 
