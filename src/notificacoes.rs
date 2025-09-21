@@ -3,7 +3,7 @@ use crate::banco_de_dados::le_escolha;
 use crate::transicao::duracao_atual_transicao;
 use crate::constantes::ULTIMA_NOTIFICACAO;
 // Bibliotecas externas:
-use utilitarios::legivel::tempo as Tempo;
+use utilitarios::legivel::{tempo_legivel};
 // Biblioteca padrão do Rust:
 use std::path::Path;
 use std::process::Command;
@@ -75,7 +75,7 @@ pub fn popup_notificacao_de_transicao() {
       tempo = "--expire-time=12500";
       mensagem = format!(
          "a atual transição continuará, aguarde mais {}",
-         Tempo(duracao_atual_transicao().as_secs(), true)
+         tempo_legivel(duracao_atual_transicao().as_secs(), true)
       );
    } else {
       tempo = "--expire-time=25000";
@@ -113,7 +113,6 @@ pub fn popup_notificacao_de_transicao() {
 mod tests {
    use super::*;
    use std::fs::remove_file;
-   // use utilitarios::legivel::tempo;
 
    #[test]
    fn atualTransicao() 

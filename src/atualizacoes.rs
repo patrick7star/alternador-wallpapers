@@ -280,7 +280,7 @@ pub fn atualiza_xmls() {
       println!(
          "atualização NÃO AUTORIZADA!
          \rtempo restante é {}\n",
-         legivel::tempo(dias_restantes, false)
+         legivel::tempo_legivel(dias_restantes, false)
       ); 
    }
 }

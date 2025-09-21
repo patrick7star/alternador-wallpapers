@@ -24,7 +24,7 @@ mod comunicacao;
 // Biblioteca externas:
 #[allow(warnings)]
 use utilitarios::aleatorio::sortear;
-use utilitarios::legivel::{tempo as tempo_legivel};
+use utilitarios::legivel::{tempo_legivel};
 use utilitarios::terminal::{terminal_largura, Largura};
 // Bibliotecas do Rust:
 use std::time::{Instant, Duration};

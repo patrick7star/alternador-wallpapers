@@ -438,7 +438,7 @@ mod tests {
    use super::*;
    use std::fs::remove_file;
    extern crate utilitarios;
-   use utilitarios::legivel::tempo;
+   use utilitarios::legivel::tempo_legivel;
    use crate::BD1;
 
    #[test]
@@ -518,6 +518,6 @@ mod tests {
    fn testa_duracao_atual_transicao() {
       let t = duracao_atual_transicao(); 
       assert!( t > Duration::from_secs(60));
-      println!("valor={}", tempo(t.as_secs(), true));
+      println!("valor={}", tempo_legivel(t.as_secs(), true));
    }
 }
