@@ -1,4 +1,4 @@
-VERSAO 	= 1.0.0
+VERSAO 	= 1.0.1
 CAMINHO  = ../versões/personalizacao
 
 salva:
