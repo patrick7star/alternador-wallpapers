@@ -8,6 +8,7 @@
 
 // Bibliotecas externas:
 extern crate utilitarios;
+
 // Módulos do próprio projeto:
 mod banco_de_dados;
 mod transicao;
@@ -20,6 +21,7 @@ mod constantes;
 // #[allow(unused)]
 // mod transicoes;
 mod comunicacao;
+mod linque;
 
 // Biblioteca externas:
 #[allow(warnings)]
@@ -32,6 +34,7 @@ use std::thread::sleep;
 use std::env::var;
 use std::path::{Path};
 use std::process::{Command};
+use std::io::{ErrorKind};
 // Submódulos deste projeto:
 use transicao::{
    alterna_transicao,
@@ -187,8 +190,37 @@ fn execucao_continua_da_transicao() {
    }
 }
 
+fn tentativa_de_criacao_linques_no_inicio_da_execucao() {
+   let nome_do_linque = "alternador-wallpapers";
+   let mensagens = [
+      "Não possível criar um linque nesta execução, / 
+      porém na próxima isso será feito.",
+   ];
+
+   match linque::linca_executaveis_externamente(nome_do_linque) {
+      Ok(_) =>
+         { println!("Foi criado com sucesso."); }
+      Err(tipo_de_erro) => { 
+         match tipo_de_erro {
+            ErrorKind::TooManyLinks => 
+               { panic!("{}", mensagens[0]); }
+            _=>
+               { panic!("{tipo_de_erro:}");  }
+         }
+      }
+   }
+}
+
 fn main() {
+   /* Posicionar à partir daqui, faz com que feche quase imediamente após
+    * a execução, assim não é preciso esperar alguns minutos prá verficar
+    * isso novamente, e assim, fechar o programa que já tem instância em 
+    * execução. */
+   let cliente = comunicacao::receptor();
+   let _servidor: std::thread::JoinHandle<()>;
+
    checagem_e_configuracao_do_ambiente();
+   tentativa_de_criacao_linques_no_inicio_da_execucao();
 
    /* se for o artefato de depuração, então já colocar em caminho uma 
     * possível compilação da versão otimizada. */
@@ -206,8 +238,7 @@ fn main() {
    /* Diz para processos externos, deste programa, que não é necessário
     * lançar uma nova instância, porque uma(esta) já está rodando. Ambas
     * são threads. */
-   let cliente = comunicacao::receptor();
-   let _servidor = comunicacao::transmissor(cliente);
+   _servidor = comunicacao::transmissor(cliente);
 
    execucao_continua_da_transicao();
 }
