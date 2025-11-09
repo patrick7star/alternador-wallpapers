@@ -16,9 +16,12 @@ debug:
 release-cargo:
 	cargo build --verbose --release
 
+cria-raiz:
+	@mkdir -p target/debug target/release
+	@echo "Caminho pro executáveis criado com sucesso."
 # Como todas bibliotecas já estão compiladas, tal processo é bem mais rápido.
 # Ele compila o objeto do'main' somente, e linca nos compilados.
-release-rustc:
+release-rustc: cria-raiz
 	@rustc --edition 2021 --crate-name alterandor_wallpapers src/main.rs \
 	-C opt-level=3 -C opt-level=z	-C strip=symbols								\
 	-Llib/linux_x86_64																	\
@@ -35,7 +38,28 @@ release-rustc:
 		--extern 'ryu=lib/linux_x86_64/libryu.rlib'								\
 		--extern 'serde=lib/linux_x86_64/libserde.rlib'							\
 		--extern 'libc=lib/linux_x86_64/liblibc.rlib'							\
-	-o target/release/alternador_wallpapers
+	-o target/release/alternador-wallpapers-release
+	@echo "Compila manualmente usando bibliotecas estáticas já compilada."
+
+# O mesmo que o acima, porém em modo-debug. Portanto, leva bem menos tempos
+# a compilação, pois não há otimização.
+debug-rustc:
+	@rustc --edition 2021 --crate-name alterandor_wallpapers src/main.rs \
+	-C opt-level=0 -Llib/linux_x86_64												\
+		--extern 'utilitarios=lib/linux_x86_64/libutilitarios.rlib'			\
+		--extern 'date_time=lib/linux_x86_64/libdate_time.rlib'				\
+		--extern 'lazy_static=lib/linux_x86_64/liblazy_static.rlib'			\
+		--extern 'regex=lib/linux_x86_64/libregex.rlib'							\
+		--extern 'memchr=lib/linux_x86_64/libmemchr.rlib'						\
+		--extern 'regex_automata=lib/linux_x86_64/libregex_automata.rlib'	\
+		--extern 'aho_corasick=lib/linux_x86_64/libiaho_corasick.rlib'		\
+		--extern 'regex_syntax=lib/linux_x86_64/libregex_syntax.rlib'		\
+		--extern 'itoa=lib/linux_x86_64/libitoa.rlib'							\
+		--extern 'serde_json=lib/linux_x86_64/libserde_json.rlib'			\
+		--extern 'ryu=lib/linux_x86_64/libryu.rlib'								\
+		--extern 'serde=lib/linux_x86_64/libserde.rlib'							\
+		--extern 'libc=lib/linux_x86_64/liblibc.rlib'							\
+	-o target/debug/alternador-wallpapers-debug
 	@echo "Compila manualmente usando bibliotecas estáticas já compilada."
 
 script-tests:
