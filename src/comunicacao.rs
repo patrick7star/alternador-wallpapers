@@ -6,10 +6,58 @@ use std::mem::{transmute};
 use std::time::{Duration, Instant};
 use std::thread::{spawn as start_new_thread, sleep, JoinHandle};
 use std::path::{PathBuf};
-use crate::compilacao::{computa_caminho};
+use crate::linque::{computa_caminho};
 
 
-fn caminho_da_tubulacao() -> PathBuf { 
+pub fn transmissor(cliente: JoinHandle<()>) -> JoinHandle<()>
+{
+/* Emite sinais, via um 'named pipe', pra algum transmissor em outro
+ * processo. Também, lança uma thread pro chamador. Antes deste ser chamado,
+ * é preciso esperar qualquer outra thread 'receptor' lançada no mesmo
+ * processo. */
+   cliente.join().expect
+      ("Preciso parar a antena, antes de começar o próprio transmissor.");
+
+   let mut ritmo = Duration::from_millis(300);
+   let mut contador = 0;
+   let mut relogio = Instant::now();
+
+   start_new_thread(|| { loop {
+      let _= alterna_interruptor(true);
+   }});
+
+   start_new_thread(move ||{
+      loop {
+         sleep(ritmo);
+         info_da_transmissao(&mut contador, ritmo, &mut relogio);
+         ritmo = funcao_tempo(contador, ritmo);
+      }
+   })
+}
+
+pub fn receptor() -> JoinHandle<()> {
+/* Lança uma thread cliente, onde ela tenta por algum instante receptar
+ * alguma sinal, ou mesmo erro ocorrido de outro processo. Tal valor que
+ * foi enviado via 'named pipe'. */
+   let mensagem_de_sucesso = "Todas tentativas indicam que não há um \
+         programa rodando no momento.";
+   let mensagem_de_erro = "Já existe um programa rodando!";
+
+   cria_tubulacao().unwrap();
+   std::thread::spawn(move || {
+      match atual_estado() {
+         Ok(false)=>
+            { println!("\n{}", mensagem_de_sucesso); }
+         Ok(true) =>
+            { println!("{}", mensagem_de_erro); std::process::exit(2); }
+         Err(erro) =>
+            { panic!("[erro] {}", erro.kind()); }
+      }
+   })
+}
+
+
+fn caminho_da_tubulacao() -> PathBuf {
 // Caminho do 'named pipe' tratado neste módulo.
    const ARQUIVO: &str = "./ativo";
    let output = computa_caminho(ARQUIVO);
@@ -49,7 +97,7 @@ fn cria_tubulacao() -> io::Result<()> {
 }
 
 fn alterna_interruptor(estado: bool) -> io::Result<()> {
-/* Envia dados informando que este programa está rodando. O tempo que ele 
+/* Envia dados informando que este programa está rodando. O tempo que ele
  * mantém enviando é meio à um segundo e meio, então fecha a linha. */
    let caminho = caminho_da_tubulacao_cstr();
    let pathname = caminho.clone().into_raw();
@@ -62,7 +110,7 @@ fn alterna_interruptor(estado: bool) -> io::Result<()> {
    unsafe {
    /* Tal transmissor de informação pra outros processos, faz o seguinte:
     * abre o 'caminho(named pipe)', escreve bytes(envia), então aguarda por
-    * meio segundo pra ver se alguém ler; com leitura ou não, fecha o 
+    * meio segundo pra ver se alguém ler; com leitura ou não, fecha o
     * 'named pipe' aberto. */
       via = libc::open(pathname, libc::O_RDWR);
       libc::write(via, bytes as *const void, 1);
@@ -95,31 +143,10 @@ fn atual_estado() -> io::Result<bool> {
    Ok(valor == 1)
 }
 
-pub fn receptor() -> JoinHandle<()> {
-/* Lança uma thread cliente, onde ela tenta por algum instante receptar 
- * alguma sinal, ou mesmo erro ocorrido de outro processo. Tal valor que 
- * foi enviado via 'named pipe'. */
-   let mensagem_de_sucesso = "Todas tentativas indicam que não há um \
-         programa rodando no momento.";
-   let mensagem_de_erro = "Já existe um programa rodando!";
-
-   cria_tubulacao().unwrap();
-   std::thread::spawn(move || {
-      match atual_estado() {
-         Ok(false)=>
-            { println!("\n{}", mensagem_de_sucesso); }
-         Ok(true) =>
-            { println!("{}", mensagem_de_erro); std::process::exit(2); }
-         Err(erro) =>
-            { panic!("[erro] {}", erro.kind()); }
-      }
-   })
-} 
-
-fn info_da_transmissao(disparos: &mut i32, ritmo: Duration, 
-  relogio: &mut Instant) 
+fn info_da_transmissao(disparos: &mut i32, ritmo: Duration,
+  relogio: &mut Instant)
 {
-   const MOSTRAR_NOVAMENTE: Duration = Duration::from_secs(3); 
+   const MOSTRAR_NOVAMENTE: Duration = Duration::from_secs(3);
 
    if relogio.elapsed() > MOSTRAR_NOVAMENTE {
       println!("Transmitido pela {:>4}ª vez.\t~{:0.0?}", *disparos, ritmo);
@@ -135,41 +162,13 @@ fn funcao_tempo(disparos: i32, ritmo: Duration) -> Duration {
    const TOTAL: i32 = 5;
    const TAXA: f32 = 1.12; // 12%
 
-   if disparos % TOTAL == 0 {  
+   if disparos % TOTAL == 0 {
       if ritmo > UM_MINUTO
          { ritmo }
       else
          { Duration::mul_f32(ritmo, TAXA) } }
    else
       { ritmo }
-}
-
-pub fn transmissor(cliente: JoinHandle<()>) -> JoinHandle<()> 
-{
-/* Emite sinais, via um 'named pipe', pra algum transmissor em outro
- * processo. Também, lança uma thread pro chamador. Antes deste ser chamado,
- * é preciso esperar qualquer outra thread 'receptor' lançada no mesmo 
- * processo. */
-   cliente.join().expect
-      ("Preciso parar a antena, antes de começar o próprio transmissor.");
-      
-   let mut ritmo = Duration::from_millis(300);
-   let mut contador = 0;
-   let mut relogio = Instant::now();
-
-   start_new_thread(|| { loop {
-      let _= alterna_interruptor(true); 
-   }});
-
-   start_new_thread(move ||{
-      loop {
-         // let _= alterna_interruptor(true); 
-
-         sleep(ritmo);    
-         info_da_transmissao(&mut contador, ritmo, &mut relogio);
-         ritmo = funcao_tempo(contador, ritmo);
-      }
-   })
 }
 
 
@@ -193,15 +192,15 @@ mod tests {
          super::alterna_interruptor(true).unwrap();
       });
       let fio_b = start_new_thread(move || {
-         if let Ok(_) = super::atual_estado() { 
-            if let Ok(valor) = count.lock() { 
+         if let Ok(_) = super::atual_estado() {
+            if let Ok(valor) = count.lock() {
                let x = valor.get();
 
                valor.set(x + 1);
                println!("Dados recebido com sucesso.");
             }
          }
-         
+
          let valor = (*count).lock().unwrap().get();
          println!("{:?} leituras realizadas com sucesso.", valor);
       });
@@ -224,7 +223,7 @@ mod tests {
       let mut num_de_paginas = capacidade / (4 * 1024);
 
       println!(
-         "Tamanho do buffer: {}\nNúmero de páginas: {}", 
+         "Tamanho do buffer: {}\nNúmero de páginas: {}",
          capacidade, num_de_paginas
       );
 
@@ -233,7 +232,7 @@ mod tests {
       num_de_paginas = capacidade / (4 * 1024);
 
       println!(
-         "\tTamanho do buffer: {}\n\tNúmero de páginas: {}", 
+         "\tTamanho do buffer: {}\n\tNúmero de páginas: {}",
          capacidade, num_de_paginas
       );
       libc::close(fd);

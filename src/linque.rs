@@ -16,7 +16,9 @@ const PROJETO: &'static str = "alternador-wallpapers";
 
 /// Complementa link ao executável à partir do caminho do executável ...
 #[allow(unused)]
-pub fn computa_caminho(caminho_str: &str) -> PathBuf {
+pub fn computa_caminho<P>(caminho_str: &P) -> PathBuf 
+  where P: AsRef<Path> + ?Sized
+{
    const NOME: &'static str = PROJETO;
    let barreira = Some(OsStr::new(NOME));
 
@@ -52,7 +54,7 @@ pub fn linka_executaveis(nome: &str) {
    if ld_link.as_path().exists() && 
    ld_link.as_path().is_symlink() {
       if executavel.as_path().exists() 
-         { println!("binário do executável existe."); }
+         { println!("Binário do executável existe."); }
    } else {
       print!("criando '{}' ... ", nome);
       match symlink(executavel.as_path(), ld_link.as_path()) {
@@ -106,7 +108,7 @@ pub fn linca_executaveis_externamente(nome: &str) ->
    }
       
    if ja_existe_um_linque_simbolico {
-      println!("binário do executável já existe em {}.", destino); 
+      println!("Binário do executável já existe em {}.", destino); 
       // apenas retorna o linque que já existe!
       return Ok (linque);
    } 

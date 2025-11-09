@@ -6,9 +6,34 @@
 */
 
 use std::{env, ffi::{OsStr}};
-use std::path::{Path, Component, PathBuf};
+use std::path::{Component};
 use std::process::Command;
+use crate::linque::{computa_caminho};
 
+
+/* executa compilação em sí. Confirma se foi feito, ou não. */
+pub fn executa_compilacao() -> bool {
+   // caminho do caixote.
+   let mut diretorio = computa_caminho("nada");
+   diretorio.pop();
+   // compondo o comando...
+   let mut comando = Command::new("cargo");
+   comando.arg("build");
+   comando.arg("--release");
+   comando.arg("--offline");
+   comando.arg("--color=never");
+   comando.current_dir(diretorio);
+
+   if hora_de_compilar() {
+      match comando.spawn() {
+         Ok(_) => {
+            print!("Rodando compilação...");
+         } Err(_) => { return false; }
+      };
+      println!("feito.");
+      return true;
+   } else { false }
+}
 
 /* compila binário principal se, primeiro, não estiver rodando ele; 
  * outra é que, também ele não existir. Faz isso por um subprocesso, 
@@ -31,7 +56,7 @@ fn hora_de_compilar() -> bool {
          { String::from("falso") }
    };
    let s = "target/release/alternador_wallpapers";
-   let caminho_otimizado = dbg!(computa_caminho(s));
+   let caminho_otimizado = computa_caminho(s);
 
    /* impressão das condições necessárias, 
     * para que se autorize a compilação. */
@@ -42,54 +67,6 @@ fn hora_de_compilar() -> bool {
       traducao(caminho_otimizado.exists())
    );
    rodando_no_debug && !caminho_otimizado.exists()
-}
-
-// complementa link ao executável.
-pub fn computa_caminho<C>(caminho: C) -> PathBuf
-  where C: AsRef<Path> 
-{
-   // à partir do caminho do executável ...
-   match env::current_exe() {
-      Ok(mut base) => {
-         /* remove componentes do caminho até chegar ao diretório base,
-          * onde fica, ou no mínimo tem um subdiretório com o código. */
-         while !base.ends_with("target")
-            { base.pop(); }
-         /* remove também o diretório 'target'. Então agora está no 
-          * diretório do 'caixote' do código. */
-         base.pop(); 
-         // complementa com o caminho passado.
-         base.push(caminho);
-         match base.canonicalize() {
-            Ok(path) => path,
-            Err(_) => base
-         }
-      } Err(_) =>
-         { panic!("não foi possível obter o caminho do executável!"); }
-   }
-}
-
-/* executa compilação em sí. Confirma se foi feito, ou não. */
-pub fn executa_compilacao() -> bool {
-   // caminho do caixote.
-   let diretorio = computa_caminho(".");
-   // compondo o comando...
-   let mut comando = Command::new("cargo");
-   comando.arg("build");
-   comando.arg("--release");
-   comando.arg("--offline");
-   comando.arg("--color=never");
-   comando.current_dir(diretorio);
-
-   if hora_de_compilar() {
-      match comando.spawn() {
-         Ok(_) => {
-            print!("rodando compilação...");
-         } Err(_) => { return false; }
-      };
-      println!("feito.");
-      return true;
-   } else { false }
 }
 
 #[cfg(test)]

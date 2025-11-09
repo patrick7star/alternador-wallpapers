@@ -1,8 +1,8 @@
-/*! 
+/*!
     Alterna wallpapers, ou "exibição de wallpapers" durante tempos e tempos,
- contando com meses com comemorações específicas como o natal e halloween. 
- Ele aceita uma expansão dinâmica dos wallapapers que serão alternados, 
- apenas coloque mais nos diretórios específicos que ele lê. Será computado 
+ contando com meses com comemorações específicas como o natal e halloween.
+ Ele aceita uma expansão dinâmica dos wallapapers que serão alternados,
+ apenas coloque mais nos diretórios específicos que ele lê. Será computado
  em toda inicialização do computador, ou novo login.
 */
 
@@ -14,7 +14,6 @@ mod banco_de_dados;
 mod transicao;
 mod atualizacoes;
 mod comparacao;
-mod compilacao;
 mod notificacoes;
 mod configuracao;
 mod constantes;
@@ -44,8 +43,34 @@ use atualizacoes::atualiza_xmls;
 use constantes::*;
 
 
+
+fn main() {
+   /* Posicionar à partir daqui, faz com que feche quase imediamente após
+    * a execução, assim não é preciso esperar alguns minutos prá verficar
+    * isso novamente, e assim, fechar o programa que já tem instância em
+    * execução. */
+   let cliente = comunicacao::receptor();
+   let _servidor: std::thread::JoinHandle<()>;
+
+   checagem_e_configuracao_do_ambiente();
+   tentativa_de_criacao_linques_no_inicio_da_execucao();
+
+   /* Antes de começar uma nova transição, ou a comunicação exterior; o
+    * programa simplesmente dá uma breve pausa, prá se ver, e também apreciar
+    * o wallpaper escolhido antes do último desligamento ou login realizado
+    * antes desta nova execução. */
+   pausa_aleatoria();
+
+   /* Diz para processos externos, deste programa, que não é necessário
+    * lançar uma nova instância, porque uma(esta) já está rodando. Ambas
+    * são threads. */
+   _servidor = comunicacao::transmissor(cliente);
+
+   execucao_continua_da_transicao();
+}
+
 fn pausa_aleatoria() {
-   /* Pausa de alguns minutos para se curtir a transição anterior. 
+   /* Pausa de alguns minutos para se curtir a transição anterior.
     * Claro, eles estão quantificados em segundos. */
    let minutos = {
       if cfg!(debug_assertions)
@@ -55,7 +80,7 @@ fn pausa_aleatoria() {
    };
    let limite = Duration::from_secs(minutos);
    let timer = Instant::now();
-   let taxa = || { 
+   let taxa = || {
       if cfg!(debug_assertions)
          { limite / 6 }
       else
@@ -66,7 +91,7 @@ fn pausa_aleatoria() {
       let restante = limite - timer.elapsed();
 
       println!(
-         "Tempo de espera para iniciar de fato ...{:>10}", 
+         "Tempo de espera para iniciar de fato ...{:>10}",
          tempo_legivel(restante.as_secs(), true)
       );
       sleep(taxa());
@@ -74,11 +99,12 @@ fn pausa_aleatoria() {
 }
 
 fn desenha_cabecalho(msg: &str) {
-   let Largura(a) = terminal_largura().unwrap();
+   let padrao = Largura(40);
+   let Largura(a) = terminal_largura().unwrap_or(padrao);
    let b = msg.len();
    let n = ((a as usize - b) / 2) as usize;
    let bar = &"~".repeat(n);
-   
+
    println!("{} {msg:} {}", bar, bar);
 }
 
@@ -89,10 +115,18 @@ fn o_programa_de_transicao_existe(exe: &'static str) -> bool {
 
    comando.arg("--version");
 
-   if let Ok(result) = comando.output() 
+   if let Ok(result) = comando.output()
       { return result.status.success(); }
    // Se não retornado um valor válido, significa erro, logo confirma tese.
    false
+}
+
+fn aplica_checagem(resposta: bool) -> char {
+   const VALIDO:char    = '\u{2714}';
+   const INVALIDO:char  = '\u{1f5d9}';
+
+   if resposta { VALIDO }
+   else { INVALIDO }
 }
 
 /** Verificação e configuração de variáveis, diretórios, e etc. */
@@ -112,7 +146,7 @@ fn checagem_e_configuracao_do_ambiente() {
 
    const GSETTINGS: &'static str = "/usr/bin/gsettings";
    let mut inputs = vec![
-       PYTHON, ARQUIVO_CONF, ULTIMA_NOTIFICACAO, 
+       PYTHON, ARQUIVO_CONF, ULTIMA_NOTIFICACAO,
        CAMINHO_ARQUIVO, BD1
    ];
    desenha_cabecalho("Verificação de todos caminhos do código");
@@ -127,12 +161,13 @@ fn checagem_e_configuracao_do_ambiente() {
          { println!("\u{1f5d9}"); }
    }
 
-   print!("{} ...", GSETTINGS); 
+   let resposta = o_programa_de_transicao_existe(GSETTINGS);
+   println!("{} {:.>52}", GSETTINGS, aplica_checagem(resposta));
 
-   if o_programa_de_transicao_existe(GSETTINGS) 
-      { println!("\u{2714}"); }
-   else
-      { println!("\u{1f5d9}"); }
+   let caminho = linque::computa_caminho("ativo");
+   let resposta = caminho.exists();
+   println!("(Named pipe){} {:.>13}", caminho.display(), aplica_checagem(resposta));
+
    // Separando 'output' dos demais ...
    print!("\n\n");
 }
@@ -145,7 +180,7 @@ fn execucao_continua_da_transicao() {
 
    loop {
       let aciona_uma_nova_transicao = {
-      /* Se tiver "atigindo" tal tempo, então trocar a transição de 
+      /* Se tiver "atigindo" tal tempo, então trocar a transição de
        * wallpaper atual. */
          cronometro.elapsed() > tempo_final
                      &&
@@ -156,8 +191,8 @@ fn execucao_continua_da_transicao() {
          alterna_transicao();
          // Zerá contador... para nova contagem.
          cronometro = Instant::now();
-         /* Pegando duração do tempo total de apresentação da nova 
-          * transição de slides, somado à 1min para acabar toda 
+         /* Pegando duração do tempo total de apresentação da nova
+          * transição de slides, somado à 1min para acabar toda
           * apresentação. */
          tempo_final = duracao_atual_transicao() + Duration::from_secs(60);
          // Mostra a notificação da atual ação.
@@ -181,7 +216,7 @@ fn execucao_continua_da_transicao() {
          );
       }
 
-      /* Possívelmente realizando uma atualização dos arquivlos de 
+      /* Possívelmente realizando uma atualização dos arquivlos de
        * transições XMLs no diretório onde ficam. */
       if false { atualiza_xmls(); } // desabilitado por enquanto
 
@@ -193,16 +228,16 @@ fn execucao_continua_da_transicao() {
 fn tentativa_de_criacao_linques_no_inicio_da_execucao() {
    let nome_do_linque = "alternador-wallpapers";
    let mensagens = [
-      "Não possível criar um linque nesta execução, / 
+      "Não possível criar um linque nesta execução, /
       porém na próxima isso será feito.",
    ];
 
    match linque::linca_executaveis_externamente(nome_do_linque) {
       Ok(_) =>
          { println!("Foi criado com sucesso."); }
-      Err(tipo_de_erro) => { 
+      Err(tipo_de_erro) => {
          match tipo_de_erro {
-            ErrorKind::TooManyLinks => 
+            ErrorKind::TooManyLinks =>
                { panic!("{}", mensagens[0]); }
             _=>
                { panic!("{tipo_de_erro:}");  }
@@ -211,43 +246,11 @@ fn tentativa_de_criacao_linques_no_inicio_da_execucao() {
    }
 }
 
-fn main() {
-   /* Posicionar à partir daqui, faz com que feche quase imediamente após
-    * a execução, assim não é preciso esperar alguns minutos prá verficar
-    * isso novamente, e assim, fechar o programa que já tem instância em 
-    * execução. */
-   let cliente = comunicacao::receptor();
-   let _servidor: std::thread::JoinHandle<()>;
-
-   checagem_e_configuracao_do_ambiente();
-   tentativa_de_criacao_linques_no_inicio_da_execucao();
-
-   /* se for o artefato de depuração, então já colocar em caminho uma 
-    * possível compilação da versão otimizada. */
-    if compilacao::executa_compilacao()
-      { println!("Uma compilação foi realizada!"); }
-   else
-      { println!("Nenhuma compilação foi inicializada!"); }
-
-   /* Antes de começar uma nova transição, ou a comunicação exterior; o 
-    * programa simplesmente dá uma breve pausa, prá se ver, e também apreciar
-    * o wallpaper escolhido antes do último desligamento ou login realizado
-    * antes desta nova execução. */
-   pausa_aleatoria();
-
-   /* Diz para processos externos, deste programa, que não é necessário
-    * lançar uma nova instância, porque uma(esta) já está rodando. Ambas
-    * são threads. */
-   _servidor = comunicacao::transmissor(cliente);
-
-   execucao_continua_da_transicao();
-}
-
 #[cfg(test)]
 #[allow(non_snake_case)]
 mod tests {
    use super::*;
-   
+
    #[test]
    fn visualizacao_do_output_da_checagem_de_variaveis() {
       checagem_e_configuracao_do_ambiente();

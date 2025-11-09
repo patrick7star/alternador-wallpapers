@@ -10,7 +10,7 @@ use std::io::{Write};
 use std::path::{PathBuf};
 // usando própria biblioteca:
 // use super::BD1;
-use crate::compilacao::computa_caminho;
+use crate::linque::computa_caminho;
 use crate::constantes::{SELECOES_FEITAS, Str};
 
 pub fn grava_escolha(caminho:PathBuf) -> bool {
