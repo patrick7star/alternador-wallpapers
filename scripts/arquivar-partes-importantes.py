@@ -133,6 +133,15 @@ def realiza_compressao_dos_tarballs() -> None:
    for caminho in Glob("./lib/*"):
       print(caminho)
 
+if __name__ == "__main__":
+   identificacao_do_computador_usado()
+   compacta_biblioteca_externa_utils()
+   compactacao_dos_binarios_compilados()
+
+class IdentificacaoDoComputadorUsado(TestCase):
+   def runTest(self):
+      identificacao_do_computador_usado()
+
 class CompactacaoDosBinariosEsboco(TestCase):
    def setUp(self): 
      self.rejeito = Path("./lib")
@@ -199,8 +208,3 @@ class FiltragemDasConversoesEsboco(TestCase):
          selecoes.remove(item)
       print("Depois:", selecoes)
 
-if __name__ == "__main__":
-   identificacao_do_computador_usado()
-   compacta_biblioteca_externa_utils()
-   compactacao_dos_binarios_compilados()
-   
