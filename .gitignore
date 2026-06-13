@@ -2,3 +2,4 @@ Cargo.lock
 lib/linux_x86_64
 rust-utilitarios/
 target/
+data
