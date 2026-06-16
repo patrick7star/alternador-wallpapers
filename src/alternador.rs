@@ -15,7 +15,7 @@
 use std::ffi::{OsStr};
 use std::path::{PathBuf, Path};
 use std::time::{Duration, Instant};
-use std::fmt::{Debug};
+use std::fmt::{Formatter, Debug, Result as ResultFmt};
 use std::process::{Command};
 use std::env::{self};
 use std::collections::{VecDeque, HashSet};
@@ -99,6 +99,19 @@ impl SeletorDeTransicoes
       let todos = HashSet::with_capacity(capacidade);
 
       Self { escolhidos, todos }
+   }
+}
+
+impl Debug for SeletorDeTransicoes {
+   /// Mostra todas as transições que o seletor possui.
+   fn fmt(&self, fmt: &mut Formatter<'_>) -> ResultFmt
+   {
+      let iteracao = {
+         self.escolhidos.iter().map(|x| extrai_nome_pathbuf(&x.diretorio))
+         .chain(self.todos.iter().map(|y| extrai_nome_pathbuf(&y.diretorio)))
+      };
+
+      fmt.debug_list().entries(iteracao).finish()
    }
 }
 
@@ -316,10 +329,37 @@ fn nao_e_um_arquivo_xml(caminho: &Path) -> bool
       { false }
 }
 
+/** Retira a string da base do caminho. Para o programa caso ele não tenha,
+  * o que a entrada selecionada da aplicação meio que não permite. Então
+  * neste contexto é seguro usar tal função sem a preocupação que irá 
+  * parar seu programa. */
+fn extrai_nome_pathbuf<'a>(input: &'a Path) -> &'a str {
+   if let Some(osstr) = input.file_name()
+   { 
+      if let Some(strref) = osstr.to_str()
+         { return strref; }
+
+      panic!("Não deve nunca atingir tal ponto!");
+   }
+
+   panic!("Não deve nunca chegar até aqui!");
+}
+
+
 #[allow(non_snake_case)]
 #[cfg(test)]
 mod tests {
-   use super::{TransicaoWallpaper, todos_diretorios_de_wallpapers, Duration};
+   use super::{
+      TransicaoWallpaper, todos_diretorios_de_wallpapers, Duration,
+      SeletorDeTransicoes
+   };
+
+   #[test]
+   fn prototipo_seletor_de_transicoes() {
+      let input = SeletorDeTransicoes::cria();
+
+      println!("{:?}", input);
+   }
 
    #[test]
    fn prototipo_de_transicao_wallpaper() {
