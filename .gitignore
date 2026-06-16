@@ -2,4 +2,5 @@ Cargo.lock
 lib/linux_x86_64
 rust-utilitarios/
 target/
-data
+data/
+data/historico_de_escolhas_feitas.txt
