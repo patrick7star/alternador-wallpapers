@@ -1,20 +1,21 @@
-
 /** 
- BD para gravar em disco todas alterações já realizadas, como também para 
- ajudar na reparações de redundâncias feitas na seleção aleatória.
+ * BD para gravar em disco todas alterações já realizadas, como também para 
+ * ajudar na reparações de redundâncias feitas na seleção aleatória.
 */
 
-// biblioteca padrão do Rust:
+// Biblioteca padrão do Rust:
 use std::fs::{OpenOptions, read_to_string, File};
 use std::io::{Write};
 use std::path::{PathBuf};
-// usando própria biblioteca:
-// use super::BD1;
+// Usando própria biblioteca:
 use crate::linque::computa_caminho;
 use crate::constantes::{SELECOES_FEITAS, Str};
 
-pub fn grava_escolha(caminho:PathBuf) -> bool {
-   let path_str = "data/ultima_escolha.txt";
+const CAMINHO_ESCOLHIDO: &'static str = "./data/ultima-escolha.dat";
+
+pub fn grava_escolha(caminho: PathBuf) -> bool 
+{
+   let path_str = CAMINHO_ESCOLHIDO;
    let caminho_bd = computa_caminho(path_str);
    // abrindo bd ...
    let mut arquivo:File = {
@@ -54,13 +55,14 @@ pub fn grava_escolha(caminho:PathBuf) -> bool {
    return true;
 }
 
-pub fn le_escolha() -> Result<PathBuf, Str> {
-   // lendo todo arquivo, e colocando num interador
-   // baseado nas quebra-de-linhas.
-   let conteudo:String = {
-      let path_str = "data/ultima_escolha.txt";
+/// Lendo todo arquivo, e colocando num interador baseado nas 
+/// quebra-de-linhas.
+pub fn le_escolha() -> Result<PathBuf, Str> 
+{
+   let conteudo: String = {
+      let path_str = CAMINHO_ESCOLHIDO;
       let caminho_bd = computa_caminho(path_str);
-      // let pth = Path::new(BD1);
+
       match read_to_string(caminho_bd) {
          Ok(resultado) => resultado,
          Err(_) => { return Err("arquivo foi apagado!"); }
@@ -69,12 +71,11 @@ pub fn le_escolha() -> Result<PathBuf, Str> {
    let mut conteudo = conteudo.lines();
    let diretorio = conteudo.next().unwrap();
    let nome = conteudo.next().unwrap();
-   // formando 'Caminho(Path)' ...
    let mut caminho:PathBuf = PathBuf::new();
+
    caminho.push(diretorio);
    caminho.push(nome);
-   // retornando o que foi obtido.
-   return Ok(caminho);
+   Ok(caminho)
 }
 
 /* grava seleção feito num banco de dados próprio, para propósitos de 

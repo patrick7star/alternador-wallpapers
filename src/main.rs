@@ -17,10 +17,10 @@ mod comparacao;
 mod notificacoes;
 mod configuracao;
 mod constantes;
-// #[allow(unused)]
-// mod transicoes;
 mod comunicacao;
 mod linque;
+#[allow(unused)]
+mod alternador;
 
 // Biblioteca externas:
 #[allow(warnings)]
